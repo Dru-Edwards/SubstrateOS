@@ -1,0 +1,160 @@
+name: DruOS Core CI - Supply Chain Hardened
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # Private registry configuration (set in GitHub secrets)
+  NPM_REGISTRY_URL: ${{ secrets.NPM_REGISTRY_URL || 'https://registry.npmjs.org' }}
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
+
+jobs:
+  # ============================================
+  # Security Audit
+  # ============================================
+  security-audit:
+    runs-on: ubuntu-latest
+    name: Security Audit
+    steps:
+      - uses: actions/checkout@v4
+        
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install PNPM
+        run: npm install -g pnpm@8.10.0
+        
+      - name: Run security audit
+        run: |
+          pnpm audit --audit-level=moderate || true
+        continue-on-error: true
+
+  # ============================================
+  # Build and Test
+  # ============================================
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build and Test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Install PNPM
+        run: npm install -g pnpm@8.10.0
+        
+      - name: Verify lockfile exists
+        run: |
+          if [ ! -f "pnpm-lock.yaml" ]; then
+            echo "ERROR: pnpm-lock.yaml not found!"
+            echo "Run 'pnpm install' locally and commit the lockfile"
+            exit 1
+          fi
+          
+      - name: Install dependencies with frozen lockfile
+        run: |
+          # CRITICAL: Use frozen lockfile to prevent supply chain attacks
+          pnpm install --frozen-lockfile --ignore-scripts
+          
+      - name: Generate SBOM
+        run: |
+          pnpm run sbom
+          echo "SBOM generated: $(ls -lh sbom-pnpm.json)"
+          
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-druos-core-${{ github.sha }}
+          path: sbom-pnpm.json
+          retention-days: 90
+          
+      - name: Run tests
+        run: pnpm test
+        
+      - name: Build all packages
+        run: pnpm build
+        
+      - name: Verify build artifacts
+        run: |
+          # Check that expected build outputs exist
+          ls -la web-demo/dist/ 2>/dev/null || echo "No web-demo dist"
+          ls -la packages/*/dist/ 2>/dev/null || echo "No package dists"
+
+  # ============================================
+  # Docker Build
+  # ============================================
+  docker-build:
+    runs-on: ubuntu-latest
+    name: Docker Build
+    needs: build-and-test
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: |
+            druos-core:latest
+            druos-core:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      # Optional: Push to registry (requires secrets)
+      # - name: Login to Docker Registry
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ${{ secrets.DOCKER_REGISTRY }}
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #     
+      # - name: Push Docker image
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     file: ./Dockerfile
+      #     push: true
+      #     tags: |
+      #       ${{ secrets.DOCKER_REGISTRY }}/druos-core:latest
+      #       ${{ secrets.DOCKER_REGISTRY }}/druos-core:${{ github.sha }}
+
+  # ============================================
+  # Dependency License Check (Optional)
+  # ============================================
+  license-check:
+    runs-on: ubuntu-latest
+    name: License Check
+    continue-on-error: true
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install PNPM
+        run: npm install -g pnpm@8.10.0
+        
+      - name: Install with frozen lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+        
+      - name: Check licenses
+        run: |
+          npx license-checker --production --summary || true

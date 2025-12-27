@@ -1,0 +1,120 @@
+{
+  "name": "substrateos-core",
+  "version": "0.1.0",
+  "description": "WebAssembly Linux DevKit Platform - Run Linux in your browser",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "linux",
+    "sandbox",
+    "browser",
+    "devtools",
+    "education",
+    "cli",
+    "sdk"
+  ],
+  "author": "SubstrateOS Team",
+  "license": "Apache-2.0",
+  "homepage": "https://substrateos.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/substrateos/substrateos-core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/substrateos/substrateos-core/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present test",
+    "lint": "pnpm -r --if-present lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "pnpm -r --if-present clean && rm -rf node_modules",
+    "dev": "pnpm -r --parallel --if-present dev",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "kernel:build": "./scripts/build-kernel.sh",
+    "initramfs:build": "./scripts/build-initramfs.sh",
+    "release": "changeset publish",
+    "version": "changeset version",
+    "install:ci": "pnpm install --frozen-lockfile --ignore-scripts",
+    "install:prod": "pnpm install --frozen-lockfile --prod --ignore-scripts",
+    "sbom": "pnpm list --json > sbom-pnpm.json",
+    "sbom:cyclonedx": "npx @cyclonedx/cyclonedx-npm --output-file sbom-cyclonedx.json"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.4.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.6.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "web-demo"
+  ],
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "pnpm test"
+    }
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "printWidth": 80,
+    "endOfLine": "lf"
+  },
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "prettier"
+    ],
+    "plugins": [
+      "@typescript-eslint",
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": "error",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "argsIgnorePattern": "^_"
+        }
+      ]
+    },
+    "env": {
+      "node": true,
+      "browser": true,
+      "es2022": true
+    }
+  }
+}

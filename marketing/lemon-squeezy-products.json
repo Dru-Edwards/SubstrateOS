@@ -1,0 +1,241 @@
+{
+  "store": {
+    "name": "SubstrateOS",
+    "url": "https://substrateos.dev",
+    "support_email": "support@substrateos.dev",
+    "currency": "USD",
+    "brand_color": "#3b82f6"
+  },
+  "products": [
+    {
+      "id": "free",
+      "name": "SubstrateOS Free",
+      "slug": "substrateos-free",
+      "status": "published",
+      "price": 0,
+      "price_formatted": "Free",
+      "billing_type": "free",
+      "category": "Developer Tools",
+      "short_description": "Browser-native Linux playground. Learn Linux commands, run SQL queries, and experiment—all in your browser. No installs required.",
+      "description": "SubstrateOS Free is a fully functional Linux environment that runs entirely in your browser. Perfect for learning Linux basics, experimenting with shell commands, and understanding how terminal environments work.\n\nIncludes 75+ shell commands, SQLite database, 50MB storage, interactive tutorials, and fun commands like cowsay and figlet.",
+      "features": [
+        "75+ Linux shell commands",
+        "SQLite database built-in",
+        "50MB browser storage",
+        "Persistent filesystem",
+        "Interactive tutorials",
+        "Works offline",
+        "Zero installation"
+      ],
+      "tags": ["linux", "terminal", "shell", "learning", "education", "sqlite", "browser", "free", "beginner"],
+      "cta_text": "Get Started Free",
+      "demo_url": "https://substrateos.dev/demo/free"
+    },
+    {
+      "id": "developer",
+      "name": "SubstrateOS Developer",
+      "slug": "substrateos-developer",
+      "status": "published",
+      "price_monthly": 900,
+      "price_monthly_formatted": "$9/month",
+      "price_annual": 9000,
+      "price_annual_formatted": "$90/year",
+      "billing_type": "subscription",
+      "category": "Developer Tools",
+      "short_description": "Full dev environment in your browser. Python 3.12, Node.js 20, Git, and 120+ packages. Build real projects with zero setup.",
+      "description": "SubstrateOS Developer transforms your browser into a complete development environment. Write Python scripts, build Node.js apps, manage code with Git—all without installing anything on your machine.\n\nIncludes Python 3.12 with NumPy, Pandas, Matplotlib; Node.js 20 with Express, TypeScript; Git with GitHub integration; and 120+ installable packages.",
+      "features": [
+        "Python 3.12 with pip",
+        "Node.js 20 with npm",
+        "Git version control",
+        "120+ installable packages",
+        "200MB storage",
+        "3 separate workspaces",
+        "Website embedding",
+        "Export/import workspaces",
+        "All tutorials included",
+        "Email support"
+      ],
+      "python_packages": ["numpy", "pandas", "matplotlib", "requests", "beautifulsoup4", "pillow", "scipy", "pytest", "flask", "black"],
+      "node_packages": ["lodash", "axios", "dayjs", "express", "typescript", "jest", "eslint", "prettier"],
+      "tags": ["python", "nodejs", "javascript", "git", "developer", "programming", "ide", "sandbox", "npm", "pip"],
+      "cta_text": "Start Developer Trial",
+      "demo_url": "https://substrateos.dev/demo/developer",
+      "variants": [
+        {
+          "name": "Monthly",
+          "price": 900,
+          "interval": "month"
+        },
+        {
+          "name": "Annual (Save 17%)",
+          "price": 9000,
+          "interval": "year"
+        }
+      ]
+    },
+    {
+      "id": "pro",
+      "name": "SubstrateOS Pro",
+      "slug": "substrateos-pro",
+      "status": "published",
+      "price_monthly": 1900,
+      "price_monthly_formatted": "$19/month",
+      "price_annual": 19000,
+      "price_annual_formatted": "$190/year",
+      "billing_type": "subscription",
+      "category": "AI & Developer Tools",
+      "short_description": "AI agent sandbox with full SDK. Give AI assistants safe shell access with execute_command, file operations, memory, and HTTP fetch tools.",
+      "description": "SubstrateOS Pro is the ultimate sandbox for AI agents and power developers. Give your AI assistants safe, controlled access to a real computing environment with the comprehensive Agent SDK.\n\nAgent SDK includes: execute_command, read_file, write_file, list_directory, run_sql, run_python, run_javascript, remember, recall, forget, http_fetch. Compatible with OpenAI, Anthropic, and LangChain.",
+      "features": [
+        "Full Agent SDK with 11 tools",
+        "OpenAI/Anthropic compatible",
+        "Agent memory system (1000 keys)",
+        "All Python packages",
+        "All Node.js packages",
+        "Full networking (curl, wget)",
+        "AI/ML libraries",
+        "500MB storage",
+        "10 workspaces",
+        "Safe mode presets",
+        "Custom branding",
+        "Priority support (24h)"
+      ],
+      "agent_sdk_tools": [
+        { "name": "execute_command", "description": "Run shell commands safely" },
+        { "name": "read_file", "description": "Read file contents" },
+        { "name": "write_file", "description": "Write/create files" },
+        { "name": "list_directory", "description": "List directory contents" },
+        { "name": "run_sql", "description": "Execute SQL queries" },
+        { "name": "run_python", "description": "Execute Python code" },
+        { "name": "run_javascript", "description": "Execute JavaScript code" },
+        { "name": "remember", "description": "Store key-value memory" },
+        { "name": "recall", "description": "Retrieve stored memory" },
+        { "name": "forget", "description": "Delete stored memory" },
+        { "name": "http_fetch", "description": "Make HTTP requests" }
+      ],
+      "ai_packages": ["transformers-js", "tensorflow-js", "onnx-runtime", "langchain-js"],
+      "tags": ["ai", "agent", "llm", "openai", "anthropic", "langchain", "sandbox", "tools", "function-calling", "machine-learning"],
+      "cta_text": "Start Pro Trial",
+      "demo_url": "https://substrateos.dev/demo/pro",
+      "variants": [
+        {
+          "name": "Monthly",
+          "price": 1900,
+          "interval": "month"
+        },
+        {
+          "name": "Annual (Save 17%)",
+          "price": 19000,
+          "interval": "year"
+        }
+      ]
+    },
+    {
+      "id": "classroom",
+      "name": "SubstrateOS Classroom",
+      "slug": "substrateos-classroom",
+      "status": "published",
+      "price_instructor": 29900,
+      "price_instructor_formatted": "$299/year",
+      "price_per_student": 900,
+      "price_per_student_formatted": "$9/student/year",
+      "billing_type": "subscription",
+      "category": "Education",
+      "short_description": "Complete CS education platform. Instructor dashboard, lesson builder, auto-grading, and safe student sandboxes. Up to 100 students.",
+      "description": "SubstrateOS Classroom is purpose-built for teaching computer science. Give students hands-on terminal experience in a safe, controlled environment while tracking progress and grading assignments.\n\nInstructor features: Dashboard, Lesson Builder, Auto-Grading, Progress Tracking, Bulk Operations, Workspace Viewing.\n\nStudent features: Safe Sandbox, Guided Lessons, Persistent Work, Instant Feedback.",
+      "features": [
+        "Instructor dashboard",
+        "Lesson builder with auto-grading",
+        "Up to 100 students",
+        "Python + Node.js included",
+        "Safe student sandboxes",
+        "Progress tracking",
+        "1GB instructor storage",
+        "50MB per student",
+        "LMS integration (LTI)",
+        "Export grades",
+        "Priority support",
+        "Onboarding included"
+      ],
+      "lesson_categories": [
+        "Linux Fundamentals",
+        "Bash Scripting",
+        "Python Beginner",
+        "Python Intermediate",
+        "Node.js Basics",
+        "Git Essentials",
+        "SQL Fundamentals",
+        "Data Structures",
+        "Algorithms"
+      ],
+      "tags": ["education", "classroom", "teaching", "students", "lms", "coding", "bootcamp", "university", "school", "grading"],
+      "cta_text": "Start Classroom Trial",
+      "demo_url": "https://substrateos.dev/demo/classroom",
+      "pricing_examples": [
+        { "students": 10, "total": "$299 + $90 = $389/year" },
+        { "students": 30, "total": "$299 + $270 = $569/year" },
+        { "students": 50, "total": "$299 + $450 = $749/year" },
+        { "students": 100, "total": "$299 + $900 = $1,199/year" }
+      ]
+    },
+    {
+      "id": "enterprise",
+      "name": "SubstrateOS Enterprise",
+      "slug": "substrateos-enterprise",
+      "status": "contact_sales",
+      "price_min": 2500000,
+      "price_max": 7500000,
+      "price_formatted": "$25,000 - $75,000/year",
+      "billing_type": "annual_contract",
+      "category": "Enterprise",
+      "short_description": "Enterprise AI sandbox with SSO, audit logging, compliance, and full whitelabel. SOC 2, GDPR, HIPAA-ready. Dedicated support.",
+      "description": "SubstrateOS Enterprise delivers a secure, compliant, and fully customizable AI agent sandbox for organizations with strict security and compliance requirements.\n\nSecurity: SSO (SAML/OIDC/LDAP), Full Audit Logging, SIEM Integration, Compliance (SOC 2, GDPR, HIPAA, ISO 27001), AES-256 Encryption, Policy Enforcement.\n\nDeployment: Cloud, Private Cloud, On-Premise, Air-Gapped.",
+      "features": [
+        "Unlimited users",
+        "Unlimited storage",
+        "SSO (SAML/OIDC/LDAP)",
+        "Full audit logging",
+        "SIEM integration",
+        "SOC 2 / GDPR / HIPAA ready",
+        "Full whitelabel",
+        "Custom domain",
+        "On-premise deployment",
+        "Air-gapped option",
+        "4-hour SLA",
+        "Dedicated support",
+        "Professional services"
+      ],
+      "compliance": ["SOC 2", "GDPR", "HIPAA-ready", "ISO 27001", "FedRAMP-ready"],
+      "sso_providers": ["SAML", "OIDC", "OAuth2", "LDAP", "Active Directory"],
+      "siem_integrations": ["Splunk", "Datadog", "Elastic", "Custom"],
+      "deployment_options": ["Cloud", "Private Cloud", "On-Premise", "Air-Gapped"],
+      "tags": ["enterprise", "sso", "saml", "compliance", "soc2", "gdpr", "hipaa", "audit", "security", "whitelabel", "on-premise"],
+      "cta_text": "Contact Sales",
+      "sales_email": "enterprise@substrateos.dev",
+      "pricing_tiers": [
+        { "name": "Startup", "users": "Up to 10", "price": "$25,000/year" },
+        { "name": "Growth", "users": "Up to 50", "price": "$50,000/year" },
+        { "name": "Scale", "users": "Unlimited", "price": "$75,000/year" }
+      ]
+    }
+  ],
+  "checkout": {
+    "success_url": "https://substrateos.dev/welcome?session_id={CHECKOUT_SESSION_ID}",
+    "cancel_url": "https://substrateos.dev/pricing",
+    "allow_promotion_codes": true,
+    "tax_collection": "automatic"
+  },
+  "webhooks": {
+    "endpoint": "https://api.substrateos.dev/webhooks/lemonsqueezy",
+    "events": [
+      "subscription_created",
+      "subscription_updated",
+      "subscription_cancelled",
+      "subscription_payment_failed",
+      "subscription_payment_success",
+      "order_created",
+      "license_key_created"
+    ]
+  }
+}

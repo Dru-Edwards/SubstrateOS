@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - SubstrateOS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #12121a;
+      --bg-elevated: #1a1a24;
+      --text: #e4e4e7;
+      --text-muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #22c55e;
+      --purple: #8b5cf6;
+      --border: #27272a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+    
+    nav {
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-size: 1rem;
+      text-align: center;
+    }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn-green { background: var(--green); color: white; }
+    .btn-green:hover { filter: brightness(1.1); }
+    .btn-block { display: block; width: 100%; }
+
+    /* Header */
+    .header {
+      padding: 4rem 0;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .header p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Toggle */
+    .toggle-container {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      align-items: center;
+      margin: 2rem 0;
+    }
+    .toggle-label {
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .toggle-label.active { color: var(--text); }
+    .toggle {
+      width: 60px;
+      height: 32px;
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      border-radius: 50%;
+      top: 3px;
+      left: 4px;
+      transition: transform 0.2s;
+    }
+    .toggle.annual::after { transform: translateX(26px); }
+    .save-badge {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--green);
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Pricing Grid */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .pricing-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+    }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+    }
+    .featured-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      padding: 0.25rem 1rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .pricing-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .pricing-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .pricing-amount {
+      display: flex;
+      align-items: baseline;
+      gap: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .pricing-currency { font-size: 1.5rem; font-weight: 600; }
+    .pricing-value { font-size: 3rem; font-weight: 800; }
+    .pricing-period { color: var(--text-muted); }
+    .pricing-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+    .pricing-features li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+    }
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .pricing-features li.disabled {
+      color: var(--text-muted);
+    }
+    .pricing-features li.disabled::before {
+      content: '–';
+      color: var(--text-muted);
+    }
+
+    /* Enterprise Section */
+    .enterprise {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 3rem;
+      margin: 4rem 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+    @media (max-width: 768px) {
+      .enterprise { grid-template-columns: 1fr; }
+    }
+    .enterprise h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .enterprise p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .enterprise-features {
+      list-style: none;
+    }
+    .enterprise-features li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .enterprise-features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: bold;
+    }
+    .enterprise-pricing {
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+    }
+    .enterprise-pricing h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .enterprise-tiers {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .enterprise-tier {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--bg-card);
+      border-radius: 8px;
+    }
+    .enterprise-tier-name { font-weight: 500; }
+    .enterprise-tier-price { color: var(--accent); font-weight: 600; }
+
+    /* FAQ */
+    .faq {
+      padding: 4rem 0;
+    }
+    .faq h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 3rem;
+    }
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 2rem;
+    }
+    @media (max-width: 500px) {
+      .faq-grid { grid-template-columns: 1fr; }
+    }
+    .faq-item h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .faq-item p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    footer {
+      padding: 3rem 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="landing.html" class="logo">SubstrateOS</a>
+      <div class="nav-links">
+        <a href="landing.html">Home</a>
+        <a href="index.html">Demo</a>
+        <a href="https://github.com/edwards-tech/substrateos">GitHub</a>
+        <a href="activate.html" class="btn btn-secondary">Activate License</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="header">
+    <div class="container">
+      <h1>Simple, transparent pricing</h1>
+      <p>Start free. Upgrade when you need more power. No credit card required.</p>
+      
+      <div class="toggle-container">
+        <span class="toggle-label active" id="monthly-label">Monthly</span>
+        <div class="toggle" id="billing-toggle" onclick="toggleBilling()"></div>
+        <span class="toggle-label" id="annual-label">Annual</span>
+        <span class="save-badge">Save 20%</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-name">Free</div>
+        <div class="pricing-desc">For learning and experimentation</div>
+        <div class="pricing-amount">
+          <span class="pricing-currency">$</span>
+          <span class="pricing-value">0</span>
+        </div>
+        <div class="pricing-note">Free forever</div>
+        <ul class="pricing-features">
+          <li>Full Linux shell</li>
+          <li>50+ built-in commands</li>
+          <li>SQLite database</li>
+          <li>Persistent filesystem</li>
+          <li>Interactive tutorials</li>
+          <li class="disabled">Python runtime</li>
+          <li class="disabled">Node.js runtime</li>
+          <li class="disabled">Agent SDK</li>
+        </ul>
+        <a href="index.html" class="btn btn-secondary btn-block">Get Started</a>
+      </div>
+
+      <!-- Developer -->
+      <div class="pricing-card">
+        <div class="pricing-name">Developer</div>
+        <div class="pricing-desc">For indie hackers and builders</div>
+        <div class="pricing-amount">
+          <span class="pricing-currency">$</span>
+          <span class="pricing-value" data-monthly="9" data-annual="7">9</span>
+          <span class="pricing-period">/mo</span>
+        </div>
+        <div class="pricing-note">Billed <span class="billing-period">monthly</span></div>
+        <ul class="pricing-features">
+          <li>Everything in Free</li>
+          <li>Python 3.11 (Pyodide)</li>
+          <li>Node.js (QuickJS)</li>
+          <li>3 workspaces</li>
+          <li>Embed in websites</li>
+          <li>Priority bug fixes</li>
+          <li class="disabled">Agent SDK</li>
+          <li class="disabled">Custom branding</li>
+        </ul>
+        <a href="#" class="btn btn-primary btn-block" data-checkout="developer">Start 14-Day Trial</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-desc">For AI developers and teams</div>
+        <div class="pricing-amount">
+          <span class="pricing-currency">$</span>
+          <span class="pricing-value" data-monthly="19" data-annual="15">19</span>
+          <span class="pricing-period">/mo</span>
+        </div>
+        <div class="pricing-note">Billed <span class="billing-period">monthly</span></div>
+        <ul class="pricing-features">
+          <li>Everything in Developer</li>
+          <li><strong>Agent SDK</strong> with tool definitions</li>
+          <li>Agent memory (key-value store)</li>
+          <li>HTTP fetch for agents</li>
+          <li>10 workspaces</li>
+          <li>Custom branding</li>
+          <li>Safe mode presets</li>
+          <li>Workspace sync</li>
+        </ul>
+        <a href="#" class="btn btn-green btn-block" data-checkout="pro">Start 14-Day Trial</a>
+      </div>
+
+      <!-- Education -->
+      <div class="pricing-card">
+        <div class="pricing-name">Classroom</div>
+        <div class="pricing-desc">For teachers and bootcamps</div>
+        <div class="pricing-amount">
+          <span class="pricing-currency">$</span>
+          <span class="pricing-value">299</span>
+        </div>
+        <div class="pricing-note">Per instructor + $9/student</div>
+        <ul class="pricing-features">
+          <li>Everything in Developer</li>
+          <li>Instructor dashboard</li>
+          <li>Lesson builder</li>
+          <li>Student progress tracking</li>
+          <li>50 workspaces</li>
+          <li>Audit logging</li>
+          <li>Safe mode for students</li>
+          <li>Bulk license management</li>
+        </ul>
+        <a href="mailto:education@substrateos.dev" class="btn btn-secondary btn-block">Contact Sales</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Enterprise -->
+  <section class="container">
+    <div class="enterprise">
+      <div>
+        <h2>🏢 Enterprise AI Sandbox</h2>
+        <p>A safe execution environment for AI agents running Python/Node/SQL with strict sandboxing and policy-control modes.</p>
+        <ul class="enterprise-features">
+          <li>Everything in Pro</li>
+          <li>SSO integration (SAML/OIDC)</li>
+          <li>Full audit logging</li>
+          <li>Whitelabel embedding</li>
+          <li>Custom safe mode policies</li>
+          <li>Priority support & SLA</li>
+          <li>Dedicated success manager</li>
+          <li>On-premise deployment option</li>
+        </ul>
+      </div>
+      <div class="enterprise-pricing">
+        <h3>Enterprise Pricing</h3>
+        <div class="enterprise-tiers">
+          <div class="enterprise-tier">
+            <span class="enterprise-tier-name">Startup (≤10 devs)</span>
+            <span class="enterprise-tier-price">$25,000/yr</span>
+          </div>
+          <div class="enterprise-tier">
+            <span class="enterprise-tier-name">Growth (≤50 devs)</span>
+            <span class="enterprise-tier-price">$50,000/yr</span>
+          </div>
+          <div class="enterprise-tier">
+            <span class="enterprise-tier-name">Scale (unlimited)</span>
+            <span class="enterprise-tier-price">$75,000/yr</span>
+          </div>
+        </div>
+        <a href="mailto:enterprise@substrateos.dev" class="btn btn-primary btn-block">Contact Enterprise Sales</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <h3>Is there a free trial?</h3>
+          <p>Yes! All paid plans include a 14-day free trial. No credit card required to start.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What happens when my trial ends?</h3>
+          <p>You'll be downgraded to the Free tier. Your workspaces are preserved, but premium features are disabled.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Can I switch plans?</h3>
+          <p>Yes, you can upgrade or downgrade at any time. Changes take effect immediately.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Is Python really running in the browser?</h3>
+          <p>Yes! We use Pyodide, which is CPython 3.11 compiled to WebAssembly. It's real Python, not a simulation.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What are the Node.js limitations?</h3>
+          <p>We use QuickJS, a lightweight JS engine. It supports ES2020 but not npm packages. Built-in modules like path, crypto, and os are available.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How does license validation work?</h3>
+          <p>Licenses are validated via Lemon Squeezy's API. Works offline with cached validation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>© 2024 Edwards Tech Innovation. <a href="https://github.com/edwards-tech/substrateos">Open Source</a> under Apache 2.0.</p>
+    </div>
+  </footer>
+
+  <script>
+    let isAnnual = false;
+
+    function toggleBilling() {
+      isAnnual = !isAnnual;
+      document.getElementById('billing-toggle').classList.toggle('annual', isAnnual);
+      document.getElementById('monthly-label').classList.toggle('active', !isAnnual);
+      document.getElementById('annual-label').classList.toggle('active', isAnnual);
+      
+      document.querySelectorAll('.billing-period').forEach(el => {
+        el.textContent = isAnnual ? 'annually' : 'monthly';
+      });
+      
+      document.querySelectorAll('.pricing-value[data-monthly]').forEach(el => {
+        el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
+      });
+    }
+
+    // Checkout links - replace with your Lemon Squeezy URLs
+    document.querySelectorAll('[data-checkout]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const plan = btn.dataset.checkout;
+        const billing = isAnnual ? 'annual' : 'monthly';
+        // Replace with your Lemon Squeezy checkout URL
+        // window.location.href = `https://yourstore.lemonsqueezy.com/checkout/buy/${plan}-${billing}`;
+        alert(`Would open ${plan} (${billing}) checkout.\n\nReplace with your Lemon Squeezy URL.`);
+      });
+    });
+  </script>
+</body>
+</html>

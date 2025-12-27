@@ -1,0 +1,38 @@
+{
+  "name": "@substrateos/embed-sdk",
+  "version": "1.0.0",
+  "description": "JavaScript SDK for embedding SubstrateOS DevTools Sandbox",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "author": "Edwards Tech Innovation",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "uuid": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/uuid": "9.0.7",
+    "@vitest/coverage-v8": "1.0.0",
+    "jsdom": "^23.0.0",
+    "tsup": "8.0.0",
+    "typescript": "5.3.3",
+    "vitest": "1.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "substrateos",
+    "sandbox",
+    "devtools",
+    "embed",
+    "sdk"
+  ]
+}

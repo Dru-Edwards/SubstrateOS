@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubstrateOS Free - Interactive Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f14;
+      color: #e4e4e7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 16px 24px;
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo { font-size: 20px; font-weight: 700; color: #3b82f6; }
+    .tier-badge {
+      background: #22c55e;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .main-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+    }
+    .sidebar {
+      background: #18181b;
+      border-right: 1px solid #27272a;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid #27272a;
+    }
+    .sidebar-section h3 {
+      color: #22c55e;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .demo-btn {
+      width: 100%;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      color: #e4e4e7;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    .demo-btn:hover { background: #3f3f46; border-color: #22c55e; }
+    .demo-btn .title { font-weight: 600; margin-bottom: 2px; }
+    .demo-btn .desc { font-size: 11px; color: #a1a1aa; }
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .feature-item .icon { color: #22c55e; }
+    .locked-feature { color: #6b7280; }
+    .locked-feature .icon { color: #ef4444; }
+    #terminal { flex: 1; background: #000; min-height: 400px; }
+    .info-bar {
+      padding: 12px 24px;
+      background: #18181b;
+      border-top: 1px solid #27272a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .storage-info { color: #a1a1aa; display: flex; align-items: center; gap: 12px; }
+    .storage-bar { width: 100px; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden; }
+    .storage-fill { height: 100%; background: #22c55e; width: 15%; }
+    .upgrade-btn {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .upgrade-btn:hover { opacity: 0.9; }
+    .tour-popup {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      border-radius: 12px;
+      padding: 16px 20px;
+      max-width: 320px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    .tour-popup h4 { color: #22c55e; margin-bottom: 8px; }
+    .tour-popup p { font-size: 13px; color: #a1a1aa; margin-bottom: 12px; }
+    .tour-btns { display: flex; gap: 8px; }
+    .tour-btn {
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .tour-btn.primary { background: #22c55e; color: white; }
+    .tour-btn.secondary { background: #3f3f46; color: #e4e4e7; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">SubstrateOS</div>
+    <span class="tier-badge">FREE TIER</span>
+  </header>
+
+  <div class="main-content">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h3>Try These Features</h3>
+        <button class="demo-btn" onclick="runDemo('navigation')">
+          <div class="title">📁 File Navigation</div>
+          <div class="desc">ls, cd, pwd, tree commands</div>
+        </button>
+        <button class="demo-btn" onclick="runDemo('files')">
+          <div class="title">📝 Create & Edit Files</div>
+          <div class="desc">touch, echo, cat, nano</div>
+        </button>
+        <button class="demo-btn" onclick="runDemo('search')">
+          <div class="title">🔍 Search & Filter</div>
+          <div class="desc">grep, find, wc, sort</div>
+        </button>
+        <button class="demo-btn" onclick="runDemo('textproc')">
+          <div class="title">✂️ Text Processing</div>
+          <div class="desc">cut, uniq, head, tail, tree</div>
+        </button>
+        <button class="demo-btn" onclick="runDemo('sql')">
+          <div class="title">🗄️ SQLite Database</div>
+          <div class="desc">Create tables, run queries</div>
+        </button>
+        <button class="demo-btn" onclick="runDemo('fun')">
+          <div class="title">🎨 Fun Commands</div>
+          <div class="desc">cowsay, figlet, neofetch</div>
+        </button>
+        <button class="demo-btn" onclick="runDemo('tutorial')">
+          <div class="title">📚 Interactive Tutorial</div>
+          <div class="desc">Learn Linux basics</div>
+        </button>
+      </div>
+      
+      <div class="sidebar-section">
+        <h3>Included Features</h3>
+        <div class="feature-list">
+          <div class="feature-item"><span class="icon">✓</span> 75+ Shell Commands</div>
+          <div class="feature-item"><span class="icon">✓</span> SQLite Database</div>
+          <div class="feature-item"><span class="icon">✓</span> 50MB Storage</div>
+          <div class="feature-item"><span class="icon">✓</span> Persistent Files</div>
+          <div class="feature-item"><span class="icon">✓</span> Text Processing</div>
+          <div class="feature-item"><span class="icon">✓</span> Interactive Tutorials</div>
+        </div>
+      </div>
+      
+      <div class="sidebar-section">
+        <h3>Upgrade for More</h3>
+        <div class="feature-list">
+          <div class="feature-item locked-feature"><span class="icon">✗</span> Python Runtime</div>
+          <div class="feature-item locked-feature"><span class="icon">✗</span> Node.js Runtime</div>
+          <div class="feature-item locked-feature"><span class="icon">✗</span> Website Embedding</div>
+          <div class="feature-item locked-feature"><span class="icon">✗</span> Multiple Workspaces</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="terminal"></div>
+  </div>
+
+  <div class="info-bar">
+    <div class="storage-info">
+      <span>Storage: 7.5MB / 50MB</span>
+      <div class="storage-bar"><div class="storage-fill"></div></div>
+    </div>
+    <a href="../index.html" class="upgrade-btn">Upgrade to Developer $9/mo →</a>
+  </div>
+  
+  <div class="tour-popup" id="tour">
+    <h4>👋 Welcome to SubstrateOS Free!</h4>
+    <p>This is a fully functional Linux environment in your browser. Try clicking the demo buttons on the left, or type commands directly!</p>
+    <div class="tour-btns">
+      <button class="tour-btn primary" onclick="startTour()">Start Tour</button>
+      <button class="tour-btn secondary" onclick="closeTour()">Explore Myself</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SubstrateOS } from '../../packages/runtime-sdk/dist/index.js';
+
+    const container = document.getElementById('terminal');
+    const os = new SubstrateOS({ container });
+    
+    await os.boot();
+    
+    // Make OS available globally
+    window.os = os;
+    
+    // Demo functions
+    window.runDemo = async function(demo) {
+      const shell = os.shell;
+      
+      switch(demo) {
+        case 'navigation':
+          await shell.execute('clear');
+          await shell.execute('echo "📁 File Navigation Demo"');
+          await shell.execute('echo "========================"');
+          await shell.execute('echo ""');
+          await shell.execute('pwd');
+          await shell.execute('ls -la');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Try: cd /home, ls, pwd, tree"');
+          break;
+          
+        case 'files':
+          await shell.execute('clear');
+          await shell.execute('echo "📝 File Operations Demo"');
+          await shell.execute('echo "======================="');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Creating a new file..."');
+          await shell.execute('echo "Hello, SubstrateOS!" > hello.txt');
+          await shell.execute('echo "File created! Contents:"');
+          await shell.execute('cat hello.txt');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Creating a directory..."');
+          await shell.execute('mkdir -p projects/demo');
+          await shell.execute('ls -la projects/');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Try: touch, echo, cat, mkdir, cp, mv"');
+          break;
+          
+        case 'search':
+          await shell.execute('clear');
+          await shell.execute('echo "🔍 Search & Filter Demo"');
+          await shell.execute('echo "======================="');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Creating sample data..."');
+          await shell.execute('echo -e "apple\\nbanana\\ncherry\\napricot\\nblueberry" > fruits.txt');
+          await shell.execute('echo "Searching for fruits starting with \'a\':"');
+          await shell.execute('grep "^a" fruits.txt');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Counting lines:"');
+          await shell.execute('wc -l fruits.txt');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Sorted alphabetically:"');
+          await shell.execute('sort fruits.txt');
+          break;
+          
+        case 'textproc':
+          await shell.execute('clear');
+          await shell.execute('echo "✂️ Text Processing Demo"');
+          await shell.execute('echo "======================="');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Creating CSV data..."');
+          await shell.execute('echo -e "name,age,city\\nAlice,28,NYC\\nBob,34,LA\\nCarol,25,Chicago" > data.csv');
+          await shell.execute('cat data.csv');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Extract names only (column 1):"');
+          await shell.execute('cut -d, -f1 data.csv');
+          await shell.execute('echo ""');
+          await shell.execute('echo "First 2 lines:"');
+          await shell.execute('head -2 data.csv');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Directory tree:"');
+          await shell.execute('tree -L2');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Try: cut -d, -f1,3 data.csv"');
+          break;
+          
+        case 'sql':
+          await shell.execute('clear');
+          await shell.execute('echo "🗄️ SQLite Database Demo"');
+          await shell.execute('echo "======================="');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Creating a users table..."');
+          await shell.execute('sql CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)');
+          await shell.execute('echo "Inserting data..."');
+          await shell.execute('sql INSERT INTO users (name, email) VALUES (\'Alice\', \'alice@example.com\')');
+          await shell.execute('sql INSERT INTO users (name, email) VALUES (\'Bob\', \'bob@example.com\')');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Querying data:"');
+          await shell.execute('sql SELECT * FROM users');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Try: sql SELECT COUNT(*) FROM users"');
+          break;
+          
+        case 'fun':
+          await shell.execute('clear');
+          await shell.execute('echo "🎨 Fun Commands Demo"');
+          await shell.execute('echo "===================="');
+          await shell.execute('echo ""');
+          await shell.execute('figlet "Hello!"');
+          await shell.execute('echo ""');
+          await shell.execute('cowsay "I love Linux!"');
+          await shell.execute('echo ""');
+          await shell.execute('fortune');
+          break;
+          
+        case 'tutorial':
+          await shell.execute('clear');
+          await shell.execute('echo "📚 Interactive Tutorial"');
+          await shell.execute('echo "======================="');
+          await shell.execute('echo ""');
+          await shell.execute('echo "Starting the learn command..."');
+          await shell.execute('echo ""');
+          await shell.execute('learn');
+          break;
+      }
+    };
+    
+    window.startTour = async function() {
+      closeTour();
+      await os.shell.execute('clear');
+      await os.shell.execute('echo "🎓 Quick Tour of SubstrateOS Free"');
+      await os.shell.execute('echo "=================================="');
+      await os.shell.execute('echo ""');
+      await os.shell.execute('echo "1. This is a real Linux shell running in your browser"');
+      await os.shell.execute('echo "2. Your files are saved and persist between sessions"');
+      await os.shell.execute('echo "3. You have access to 75+ Linux commands"');
+      await os.shell.execute('echo "4. SQLite database is built-in"');
+      await os.shell.execute('echo ""');
+      await os.shell.execute('echo "Try these commands:"');
+      await os.shell.execute('echo "  ls          - List files"');
+      await os.shell.execute('echo "  pwd         - Print working directory"');
+      await os.shell.execute('echo "  help        - See all commands"');
+      await os.shell.execute('echo "  sql SELECT 1+1  - Run SQL query"');
+      await os.shell.execute('echo ""');
+      await os.shell.execute('echo "Or click the demo buttons on the left! 👈"');
+    };
+    
+    window.closeTour = function() {
+      document.getElementById('tour').classList.add('hidden');
+    };
+    
+    // Initial welcome
+    await os.shell.execute('echo "🎉 Welcome to SubstrateOS Free!"');
+    await os.shell.execute('echo ""');
+    await os.shell.execute('echo "This is a fully functional Linux environment."');
+    await os.shell.execute('echo "Type \'help\' to see available commands."');
+    await os.shell.execute('echo ""');
+  </script>
+</body>
+</html>

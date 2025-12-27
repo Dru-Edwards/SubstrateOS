@@ -1,0 +1,1160 @@
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║               EDWARDS TECH INNOVATION                    ║
+  ║                                                          ║
+  ╚══════════════════════════════════════════════════════════╝
+   Business Unit : SubstrateOS-Core
+   Module        : WebAssembly Linux DevKit Platform
+   Author        : Andrew "Dru" Edwards
+   Umbrella      : Edwards Tech Innovation
+   Notice        : © 2025 All rights reserved.
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubstrateOS - Browser-Based Linux Environment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a24;
+      --bg-card: #16161f;
+      --border-color: #2a2a3a;
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a0b0;
+      --text-muted: #606070;
+      --accent-primary: #6366f1;
+      --accent-secondary: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --terminal-bg: #0d0d12;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px var(--accent-glow);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: pulse 2s infinite;
+    }
+
+    .status-badge.loading .status-dot { background: var(--warning); }
+    .status-badge.running .status-dot { background: var(--success); }
+    .status-badge.error .status-dot { background: var(--error); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--bg-card);
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-secondary);
+      border-color: var(--accent-secondary);
+    }
+
+    /* Main Layout */
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      height: calc(100vh - 57px);
+      gap: 0;
+    }
+
+    /* Terminal Section */
+    .terminal-section {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+    }
+
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .terminal-tabs {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      flex: 1;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .terminal-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .terminal-tab {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      position: relative;
+    }
+
+    .terminal-tab:hover {
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .terminal-tab.active {
+      color: var(--text-primary);
+      background: var(--terminal-bg);
+      border-bottom: 2px solid var(--accent-color);
+    }
+
+    .terminal-tab svg {
+      flex-shrink: 0;
+    }
+
+    .tab-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      margin-left: 0.25rem;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.15s ease;
+    }
+
+    .terminal-tab:hover .tab-close {
+      opacity: 0.6;
+    }
+
+    .tab-close:hover {
+      opacity: 1 !important;
+      color: #fff;
+      background: rgba(255,100,100,0.4);
+    }
+
+    .terminal-tab-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      padding: 0.5rem;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .terminal-tab-add:hover {
+      color: var(--accent-color);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 6px;
+      padding: 0 1rem;
+    }
+
+    .window-control {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
+
+    .window-control.close { background: #ff5f57; border-color: #e0443e; }
+    .window-control.minimize { background: #febc2e; border-color: #d4a120; }
+    .window-control.maximize { background: #28c840; border-color: #1ea835; }
+
+    .terminal-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .terminal-pane {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--terminal-bg);
+      padding: 0.5rem;
+      overflow: hidden;
+      display: none;
+    }
+
+    .terminal-pane.active {
+      display: block;
+    }
+
+    #terminal {
+      flex: 1;
+      background: var(--terminal-bg);
+      padding: 0.5rem;
+      overflow: hidden;
+    }
+
+    /* Quick Commands */
+    .quick-commands {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-color);
+      overflow-x: auto;
+    }
+
+    .quick-commands span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .quick-cmd {
+      padding: 0.35rem 0.65rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .quick-cmd:hover {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: white;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+      overflow: hidden;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 0.5rem;
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 0.75rem 0.5rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .sidebar-tab svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .sidebar-tab:hover {
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .sidebar-tab.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+
+    .sidebar-panel {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .sidebar-panel.active {
+      display: block;
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Logs Panel */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .log-entry {
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    .log-entry.debug { border-color: var(--text-muted); }
+    .log-entry.info { border-color: var(--accent-primary); }
+    .log-entry.warn { border-color: var(--warning); }
+    .log-entry.error { border-color: var(--error); background: rgba(239,68,68,0.1); }
+
+    .log-time {
+      color: var(--text-muted);
+      margin-right: 0.5rem;
+    }
+
+    .log-category {
+      color: var(--accent-secondary);
+      font-weight: 500;
+    }
+
+    .log-message {
+      color: var(--text-secondary);
+    }
+
+    /* Metrics Panel */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.75rem;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .metric-value.success { color: var(--success); }
+    .metric-value.warning { color: var(--warning); }
+    .metric-value.error { color: var(--error); }
+
+    /* Devices Panel */
+    .device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .device-card {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+
+    .device-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .device-info {
+      flex: 1;
+    }
+
+    .device-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .device-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .device-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    /* File Tree Panel */
+    .file-tree {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .file-tree-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.5rem;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
+    }
+
+    .file-tree-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .file-tree-item.selected {
+      background: var(--primary);
+      color: white;
+    }
+
+    .folder-icon, .file-icon {
+      font-size: 0.9rem;
+    }
+
+    .folder-name, .file-name {
+      color: var(--text-primary);
+    }
+
+    .file-tree-children {
+      margin-left: 1rem;
+      border-left: 1px solid var(--border-color);
+      padding-left: 0.5rem;
+    }
+
+    .file-info {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-sm);
+    }
+
+    .file-info-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .file-info-text code {
+      background: var(--bg-card);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      color: var(--primary);
+    }
+
+    /* Docs Panel */
+    .docs-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .docs-section h4 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .docs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .docs-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+    }
+
+    .docs-item code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent-secondary);
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.35rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .docs-item span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-content {
+      text-align: center;
+    }
+
+    .loading-logo {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin: 0 auto 1.5rem;
+      box-shadow: var(--shadow-glow);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .loading-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .loading-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .loading-features {
+      font-size: 0.85rem;
+      color: var(--accent-primary);
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.5px;
+    }
+
+    .loading-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 1rem;
+      opacity: 0.7;
+    }
+
+    .loading-progress {
+      width: 200px;
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 2px;
+      animation: loading 2s ease-in-out infinite;
+    }
+
+    @keyframes loading {
+      0% { width: 0%; margin-left: 0; }
+      50% { width: 70%; margin-left: 15%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+
+    .loading-status {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 0.85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+      }
+
+      .sidebar {
+        height: 300px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .terminal-section {
+        border-right: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">🖥️</div>
+        <span>SubstrateOS</span>
+      </div>
+      <div id="status" class="status-badge loading">
+        <div class="status-dot"></div>
+        <span id="status-text">Initializing</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btn-restart" title="Restart VM">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Restart
+      </button>
+      <button class="btn btn-primary" id="btn-fullscreen" title="Toggle Fullscreen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 3 21 3 21 9"/>
+          <polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/>
+          <line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+        Fullscreen
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <!-- Terminal Section -->
+    <div class="terminal-section">
+      <div class="terminal-header">
+        <div class="terminal-tabs" id="terminal-tabs">
+          <div class="terminal-tab active" data-tab="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+            <span>Terminal 1</span>
+            <button class="tab-close" data-tab="0" title="Close tab">×</button>
+          </div>
+          <button class="terminal-tab-add" id="add-terminal" title="New Terminal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="window-controls">
+          <div class="window-control close"></div>
+          <div class="window-control minimize"></div>
+          <div class="window-control maximize"></div>
+        </div>
+      </div>
+      <div class="terminal-container" id="terminal-container">
+        <div id="terminal" class="terminal-pane active" data-tab="0"></div>
+      </div>
+      <div class="quick-commands">
+        <span>Quick:</span>
+        <button class="quick-cmd" data-cmd="help">help</button>
+        <button class="quick-cmd" data-cmd="about">about</button>
+        <button class="quick-cmd" data-cmd="neofetch">neofetch</button>
+        <button class="quick-cmd" data-cmd="apt list">apt list</button>
+        <button class="quick-cmd" data-cmd="ls -la">ls -la</button>
+        <button class="quick-cmd" data-cmd="cat /etc/os-release">os-release</button>
+        <button class="quick-cmd" data-cmd="sudo whoami">sudo</button>
+        <button class="quick-cmd" data-cmd="version">version</button>
+        <button class="quick-cmd" data-cmd="clear">clear</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-panel="logs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Logs
+        </button>
+        <button class="sidebar-tab" data-panel="metrics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          Stats
+        </button>
+        <button class="sidebar-tab" data-panel="devices">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+            <line x1="9" y1="1" x2="9" y2="4"/>
+            <line x1="15" y1="1" x2="15" y2="4"/>
+            <line x1="9" y1="20" x2="9" y2="23"/>
+            <line x1="15" y1="20" x2="15" y2="23"/>
+            <line x1="20" y1="9" x2="23" y2="9"/>
+            <line x1="20" y1="14" x2="23" y2="14"/>
+            <line x1="1" y1="9" x2="4" y2="9"/>
+            <line x1="1" y1="14" x2="4" y2="14"/>
+          </svg>
+          Devices
+        </button>
+        <button class="sidebar-tab" data-panel="files">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          Files
+        </button>
+        <button class="sidebar-tab" data-panel="docs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Help
+        </button>
+      </div>
+
+      <!-- Logs Panel -->
+      <div id="logs" class="sidebar-panel active">
+        <div class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          System Logs
+        </div>
+        <div id="log-list" class="log-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p>No logs yet</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics Panel -->
+      <div id="metrics" class="sidebar-panel">
+        <div class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          System Metrics
+        </div>
+        <div id="metrics-content" class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Boot Time</div>
+            <div class="metric-value" id="metric-boot">--</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Commands</div>
+            <div class="metric-value" id="metric-commands">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Device Calls</div>
+            <div class="metric-value" id="metric-device-calls">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Errors</div>
+            <div class="metric-value" id="metric-errors">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Devices Panel -->
+      <div id="devices" class="sidebar-panel">
+        <div class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+          </svg>
+          Device Bridges
+        </div>
+        <div id="device-list" class="device-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Files Panel -->
+      <div id="files" class="sidebar-panel">
+        <div class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          File System
+        </div>
+        <div id="file-tree" class="file-tree">
+          <div class="file-tree-item folder expanded" data-path="/">
+            <span class="folder-icon">📁</span>
+            <span class="folder-name">/</span>
+          </div>
+          <div class="file-tree-children" data-parent="/">
+            <div class="file-tree-item folder" data-path="/home">
+              <span class="folder-icon">📁</span>
+              <span class="folder-name">home</span>
+            </div>
+            <div class="file-tree-children" data-parent="/home">
+              <div class="file-tree-item folder" data-path="/home/user">
+                <span class="folder-icon">📁</span>
+                <span class="folder-name">user</span>
+              </div>
+            </div>
+            <div class="file-tree-item folder" data-path="/etc">
+              <span class="folder-icon">📁</span>
+              <span class="folder-name">etc</span>
+            </div>
+            <div class="file-tree-item folder" data-path="/tmp">
+              <span class="folder-icon">📁</span>
+              <span class="folder-name">tmp</span>
+            </div>
+            <div class="file-tree-item folder" data-path="/usr">
+              <span class="folder-icon">📁</span>
+              <span class="folder-name">usr</span>
+            </div>
+            <div class="file-tree-children" data-parent="/usr">
+              <div class="file-tree-item folder" data-path="/usr/local">
+                <span class="folder-icon">📁</span>
+                <span class="folder-name">local</span>
+              </div>
+              <div class="file-tree-item folder" data-path="/usr/bin">
+                <span class="folder-icon">📁</span>
+                <span class="folder-name">bin</span>
+              </div>
+            </div>
+            <div class="file-tree-item folder" data-path="/var">
+              <span class="folder-icon">📁</span>
+              <span class="folder-name">var</span>
+            </div>
+            <div class="file-tree-item folder" data-path="/bin">
+              <span class="folder-icon">📁</span>
+              <span class="folder-name">bin</span>
+            </div>
+          </div>
+        </div>
+        <div class="file-info">
+          <p class="file-info-text">Click a folder to navigate. Use <code>ls</code> and <code>cd</code> in terminal.</p>
+        </div>
+      </div>
+
+      <!-- Docs Panel -->
+      <div id="docs" class="sidebar-panel">
+        <div class="panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          </svg>
+          Quick Reference
+        </div>
+        
+        <div class="docs-section">
+          <h4>🚀 Getting Started</h4>
+          <div class="docs-list">
+            <div class="docs-item">
+              <code>learn</code>
+              <span>Linux in 10 minutes</span>
+            </div>
+            <div class="docs-item">
+              <code>tutorial</code>
+              <span>Interactive lesson</span>
+            </div>
+            <div class="docs-item">
+              <code>extend</code>
+              <span>Extension API</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="docs-section">
+          <h4>🛠️ Developer Tools</h4>
+          <div class="docs-list">
+            <div class="docs-item">
+              <code>json parse {...}</code>
+              <span>Pretty-print JSON</span>
+            </div>
+            <div class="docs-item">
+              <code>calc 2+2</code>
+              <span>Calculator</span>
+            </div>
+            <div class="docs-item">
+              <code>uuid</code>
+              <span>Generate UUID</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="docs-section">
+          <h4>📟 Shell Commands</h4>
+          <div class="docs-list">
+            <div class="docs-item">
+              <code>ls, cd, pwd</code>
+              <span>Navigate filesystem</span>
+            </div>
+            <div class="docs-item">
+              <code>cowsay, fortune</code>
+              <span>Fun commands</span>
+            </div>
+            <div class="docs-item">
+              <code>help</code>
+              <span>Show all commands</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="docs-section">
+          <h4>🌐 Network</h4>
+          <div class="docs-list">
+            <div class="docs-item">
+              <code>http GET url</code>
+              <span>Make HTTP GET request</span>
+            </div>
+            <div class="docs-item">
+              <code>logger MSG</code>
+              <span>Send log to host</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="docs-section">
+          <h4>💾 Storage</h4>
+          <div class="docs-list">
+            <div class="docs-item">
+              <code>store put KEY VAL</code>
+              <span>Store a value</span>
+            </div>
+            <div class="docs-item">
+              <code>store get KEY</code>
+              <span>Retrieve a value</span>
+            </div>
+            <div class="docs-item">
+              <code>store list</code>
+              <span>List all keys</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading" class="loading-overlay">
+    <div class="loading-content">
+      <div class="loading-logo">🖥️</div>
+      <h2 class="loading-title">SubstrateOS</h2>
+      <p class="loading-subtitle">The browser-native Linux playground for building, teaching, and experimenting.</p>
+      <p class="loading-features">No installs. No VMs. No risk.</p>
+      <div class="loading-progress">
+        <div class="loading-bar"></div>
+      </div>
+      <p id="loading-status" class="loading-status">Initializing runtime...</p>
+      <p class="loading-note">All data persists locally in your browser.</p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

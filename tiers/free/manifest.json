@@ -1,0 +1,94 @@
+{
+  "name": "SubstrateOS Free",
+  "tier": "free",
+  "version": "1.0.0",
+  "price": "$0",
+  "description": "Browser-native Linux playground for learning and experimentation",
+  
+  "features": {
+    "shell": {
+      "enabled": true,
+      "commandCount": "75+",
+      "categories": {
+        "filesystem": ["ls", "ll", "cd", "pwd", "cat", "head", "tail", "less", "more", "mkdir", "touch", "rm", "cp", "mv", "tree", "find", "stat", "file", "du", "df"],
+        "textProcessing": ["grep", "sort", "uniq", "wc", "cut", "diff", "sed", "awk", "tr", "rev"],
+        "utilities": ["echo", "printf", "date", "cal", "seq", "yes", "basename", "dirname", "realpath"],
+        "system": ["whoami", "id", "hostname", "uname", "uptime", "ps", "clear", "history", "alias", "export", "env", "printenv", "which"],
+        "developer": ["json", "calc", "uuid", "base64", "timestamp", "md5sum", "sha256sum", "hexdump"],
+        "database": ["sql", "sqlite"],
+        "fun": ["cowsay", "fortune", "figlet", "neofetch"],
+        "learning": ["help", "man", "learn", "tutorial", "about"]
+      }
+    },
+    "filesystem": {
+      "enabled": true,
+      "persistent": true,
+      "maxSize": "50MB",
+      "features": ["directories", "files", "symlinks", "permissions"]
+    },
+    "sqlite": {
+      "enabled": true,
+      "version": "3.44.0",
+      "commands": ["sql", "sqlite"],
+      "features": ["create", "insert", "select", "update", "delete", "joins", "indexes"]
+    },
+    "packages": {
+      "enabled": true,
+      "installable": false,
+      "preInstalled": [
+        { "name": "coreutils", "version": "9.4.0", "description": "GNU core utilities" },
+        { "name": "grep", "version": "3.11", "description": "Pattern matching" },
+        { "name": "sed", "version": "4.9", "description": "Stream editor" },
+        { "name": "awk", "version": "5.2.0", "description": "Text processing" },
+        { "name": "sqlite3", "version": "3.44.0", "description": "SQLite database" },
+        { "name": "nano", "version": "7.2", "description": "Text editor" },
+        { "name": "tar", "version": "1.35", "description": "Archive utility" },
+        { "name": "gzip", "version": "1.13", "description": "Compression" }
+      ],
+      "upgradeMessage": "Upgrade to Developer ($9/mo) for 120+ packages including Python & Node.js"
+    },
+    "tutorials": {
+      "enabled": true,
+      "lessons": ["linux-basics", "filesystem", "shell-scripting", "sql-intro"],
+      "interactive": true
+    },
+    "python": {
+      "enabled": false,
+      "upgradeMessage": "Upgrade to Developer ($9/mo) for Python 3.12"
+    },
+    "nodejs": {
+      "enabled": false,
+      "upgradeMessage": "Upgrade to Developer ($9/mo) for Node.js 20"
+    },
+    "agentSdk": {
+      "enabled": false,
+      "upgradeMessage": "Upgrade to Pro ($19/mo) for AI Agent SDK"
+    },
+    "embedding": {
+      "enabled": false,
+      "upgradeMessage": "Upgrade to Developer ($9/mo) for website embedding"
+    },
+    "workspaces": {
+      "maxCount": 1,
+      "sync": false
+    }
+  },
+  
+  "restrictions": {
+    "blockedCommands": ["apt install python", "apt install nodejs", "apt install git"],
+    "blockedPackages": ["python", "nodejs", "git", "curl", "wget"],
+    "maxCommandsPerSession": null,
+    "readonlyMode": false
+  },
+  
+  "branding": {
+    "showUpgradePrompts": true,
+    "showPoweredBy": true
+  },
+  
+  "support": {
+    "community": true,
+    "documentation": true,
+    "email": false
+  }
+}

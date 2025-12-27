@@ -1,0 +1,26 @@
+{
+  "name": "substrateos-web-demo",
+  "version": "0.1.0",
+  "description": "SubstrateOS web demo application",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview --port 5173",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@substrateos/device-protocols": "workspace:*",
+    "@substrateos/runtime": "workspace:*",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "20.10.0",
+    "typescript": "5.3.3",
+    "vite": "5.0.0"
+  }
+}

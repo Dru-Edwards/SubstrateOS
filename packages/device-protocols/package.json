@@ -1,0 +1,45 @@
+{
+  "name": "@substrateos/device-protocols",
+  "version": "0.1.0",
+  "description": "Device bridge protocols and implementations for SubstrateOS",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/substrateos/substrateos-core.git",
+    "directory": "packages/device-protocols"
+  },
+  "keywords": [
+    "substrateos",
+    "device",
+    "protocol",
+    "webassembly"
+  ],
+  "author": "SubstrateOS Team",
+  "license": "Apache-2.0"
+}

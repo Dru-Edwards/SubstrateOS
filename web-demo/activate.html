@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate License - SubstrateOS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #12121a;
+      --bg-elevated: #1a1a24;
+      --text: #e4e4e7;
+      --text-muted: #71717a;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --border: #27272a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    nav {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 3rem;
+      width: 100%;
+      max-width: 450px;
+    }
+    .card h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .card p {
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    input::placeholder {
+      color: var(--text-muted);
+    }
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      margin-top: 1rem;
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+    
+    .message {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .message.success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+    .message.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+    }
+    .message.info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .license-info {
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .license-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .license-tier {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .license-tier.free { color: var(--text-muted); }
+    .license-tier.developer { color: var(--accent); }
+    .license-tier.pro { color: var(--green); }
+    .license-tier.education { color: #eab308; }
+    .license-tier.enterprise { color: #8b5cf6; }
+    .license-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .license-badge.valid {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--green);
+    }
+    .license-badge.trial {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+    }
+    .license-badge.expired {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--red);
+    }
+    .license-details {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .license-details p {
+      text-align: left;
+      margin-bottom: 0.25rem;
+    }
+
+    .divider {
+      text-align: center;
+      color: var(--text-muted);
+      margin: 1.5rem 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    .links {
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .links a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .links a:hover { text-decoration: underline; }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="landing.html" class="logo">SubstrateOS</a>
+  </nav>
+
+  <div class="main">
+    <div class="card">
+      <h1>🔑 License Activation</h1>
+      <p>Enter your license key to unlock premium features</p>
+
+      <div id="message" class="message hidden"></div>
+
+      <!-- Current License Status -->
+      <div id="license-status" class="license-info">
+        <div class="license-header">
+          <span id="tier-name" class="license-tier free">Free</span>
+          <span id="tier-badge" class="license-badge valid">Active</span>
+        </div>
+        <div class="license-details">
+          <p id="license-email"></p>
+          <p id="license-expires"></p>
+        </div>
+      </div>
+
+      <!-- Activation Form -->
+      <div id="activate-form">
+        <form onsubmit="activateLicense(event)">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="license-key">License Key</label>
+            <input type="text" id="license-key" placeholder="XXXX-XXXX-XXXX-XXXX" required>
+          </div>
+          <button type="submit" class="btn" id="submit-btn">Activate License</button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <button class="btn btn-secondary" onclick="startTrial()">Start 14-Day Pro Trial</button>
+      </div>
+
+      <!-- Deactivate Button (shown when licensed) -->
+      <button id="deactivate-btn" class="btn btn-secondary hidden" onclick="deactivateLicense()">
+        Deactivate License
+      </button>
+
+      <div class="links">
+        <p>Don't have a license? <a href="pricing.html">View pricing</a></p>
+        <p style="margin-top: 0.5rem;"><a href="index.html">← Back to SubstrateOS</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // License storage keys
+    const STORAGE_KEY = 'substrateos_license';
+    const TRIAL_KEY = 'substrateos_trial_start';
+    const TRIAL_DAYS = 14;
+
+    // Feature sets per tier
+    const TIER_FEATURES = {
+      free: { python: false, node: false, agentSdk: false, workspaces: 1 },
+      developer: { python: true, node: true, agentSdk: false, workspaces: 3 },
+      pro: { python: true, node: true, agentSdk: true, workspaces: 10 },
+      education: { python: true, node: true, agentSdk: false, workspaces: 50 },
+      enterprise: { python: true, node: true, agentSdk: true, workspaces: -1 },
+    };
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      updateUI();
+    });
+
+    function updateUI() {
+      const license = loadLicense();
+      const tierName = document.getElementById('tier-name');
+      const tierBadge = document.getElementById('tier-badge');
+      const emailEl = document.getElementById('license-email');
+      const expiresEl = document.getElementById('license-expires');
+      const activateForm = document.getElementById('activate-form');
+      const deactivateBtn = document.getElementById('deactivate-btn');
+
+      // Set tier name
+      tierName.textContent = license.tier.charAt(0).toUpperCase() + license.tier.slice(1);
+      tierName.className = `license-tier ${license.tier}`;
+
+      // Set badge
+      if (license.trialDaysRemaining !== null) {
+        tierBadge.textContent = `Trial: ${license.trialDaysRemaining} days left`;
+        tierBadge.className = 'license-badge trial';
+      } else if (license.valid) {
+        tierBadge.textContent = 'Active';
+        tierBadge.className = 'license-badge valid';
+      } else {
+        tierBadge.textContent = 'Expired';
+        tierBadge.className = 'license-badge expired';
+      }
+
+      // Set details
+      emailEl.textContent = license.email ? `Email: ${license.email}` : '';
+      if (license.expiresAt) {
+        expiresEl.textContent = `Expires: ${new Date(license.expiresAt).toLocaleDateString()}`;
+      } else {
+        expiresEl.textContent = license.tier === 'free' ? 'Free forever' : '';
+      }
+
+      // Show/hide appropriate UI
+      if (license.tier !== 'free' && license.key) {
+        activateForm.classList.add('hidden');
+        deactivateBtn.classList.remove('hidden');
+      } else {
+        activateForm.classList.remove('hidden');
+        deactivateBtn.classList.add('hidden');
+      }
+    }
+
+    function loadLicense() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      } catch (e) {}
+
+      // Check for trial
+      const trialStart = localStorage.getItem(TRIAL_KEY);
+      if (trialStart) {
+        const elapsed = Date.now() - parseInt(trialStart);
+        const remaining = TRIAL_DAYS - Math.floor(elapsed / (24 * 60 * 60 * 1000));
+        if (remaining > 0) {
+          return {
+            tier: 'pro',
+            key: null,
+            email: null,
+            valid: true,
+            expiresAt: new Date(parseInt(trialStart) + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+            trialDaysRemaining: remaining,
+          };
+        }
+      }
+
+      return { tier: 'free', key: null, email: null, valid: true, expiresAt: null, trialDaysRemaining: null };
+    }
+
+    function saveLicense(license) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(license));
+    }
+
+    function showMessage(text, type = 'info') {
+      const el = document.getElementById('message');
+      el.textContent = text;
+      el.className = `message ${type}`;
+      el.classList.remove('hidden');
+    }
+
+    function hideMessage() {
+      document.getElementById('message').classList.add('hidden');
+    }
+
+    async function activateLicense(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const key = document.getElementById('license-key').value.trim();
+      const btn = document.getElementById('submit-btn');
+
+      if (!email || !key) {
+        showMessage('Please enter both email and license key.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Validating...';
+
+      try {
+        // Simulate validation - replace with real Lemon Squeezy API call
+        await new Promise(r => setTimeout(r, 1500));
+
+        // For demo: accept any key that looks valid
+        if (key.length >= 16) {
+          // Determine tier from key prefix (demo logic)
+          let tier = 'developer';
+          if (key.toLowerCase().startsWith('pro')) tier = 'pro';
+          if (key.toLowerCase().startsWith('edu')) tier = 'education';
+          if (key.toLowerCase().startsWith('ent')) tier = 'enterprise';
+
+          const license = {
+            tier,
+            key,
+            email,
+            valid: true,
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            trialDaysRemaining: null,
+          };
+
+          saveLicense(license);
+          localStorage.removeItem(TRIAL_KEY);
+
+          showMessage(`License activated! Welcome to ${tier.charAt(0).toUpperCase() + tier.slice(1)}.`, 'success');
+          updateUI();
+        } else {
+          showMessage('Invalid license key format.', 'error');
+        }
+      } catch (err) {
+        showMessage('Validation failed. Please try again.', 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Activate License';
+    }
+
+    function startTrial() {
+      const existing = localStorage.getItem(TRIAL_KEY);
+      if (existing) {
+        showMessage('You have already used your trial.', 'error');
+        return;
+      }
+
+      localStorage.setItem(TRIAL_KEY, Date.now().toString());
+      localStorage.removeItem(STORAGE_KEY);
+
+      showMessage('14-day Pro trial started! Enjoy all features.', 'success');
+      updateUI();
+    }
+
+    function deactivateLicense() {
+      if (!confirm('Are you sure you want to deactivate your license?')) return;
+
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TRIAL_KEY);
+
+      showMessage('License deactivated. You are now on the Free tier.', 'info');
+      updateUI();
+    }
+  </script>
+</body>
+</html>
