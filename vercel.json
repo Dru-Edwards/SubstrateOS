@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "name": "substrateos",
+  "builds": [
+    {
+      "src": "web-demo/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/tiers/(.*)",
+      "dest": "/tiers/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/web-demo/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ]
+}

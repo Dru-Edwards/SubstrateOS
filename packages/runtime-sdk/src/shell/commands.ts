@@ -89,6 +89,10 @@ export const commands: Record<string, CommandHandler> = {
     ctx.writeln('  restore             Import a workspace');
     ctx.writeln('  storage             View storage status');
     ctx.writeln('');
+    ctx.writeln('\x1b[1;33mLicense:\x1b[0m');
+    ctx.writeln('  license             View license status & tier');
+    ctx.writeln('  activate            Activate a license key');
+    ctx.writeln('');
     ctx.writeln('\x1b[1;33mFun:\x1b[0m');
     ctx.writeln('  cowsay <msg>        ASCII cow talks');
     ctx.writeln('  fortune             Random wisdom');
@@ -1275,6 +1279,89 @@ export const commands: Record<string, CommandHandler> = {
     ctx.writeln('  Run \x1b[33mextend\x1b[0m       - Extension API example');
     ctx.writeln('');
     ctx.writeln('\x1b[90mby Andrew "Dru" Edwards - Edwards Tech Innovation\x1b[0m');
+    ctx.writeln('');
+    return { exitCode: 0 };
+  },
+
+  // License status
+  license: (args, ctx) => {
+    // Import dynamically to avoid circular deps
+    const tierColors: Record<string, string> = {
+      free: '90',      // gray
+      developer: '34', // blue
+      pro: '35',       // purple
+      education: '32', // green
+      enterprise: '33' // yellow
+    };
+    
+    // Check localStorage for license (simple check)
+    let tier = 'free';
+    let email = '';
+    let expires = '';
+    
+    try {
+      const stored = localStorage.getItem('substrateos_license');
+      if (stored) {
+        const license = JSON.parse(stored);
+        tier = license.tier || 'free';
+        email = license.email || '';
+        expires = license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : '';
+      }
+      
+      // Check trial
+      const trialStart = localStorage.getItem('substrateos_trial_start');
+      if (trialStart && tier === 'free') {
+        const elapsed = Date.now() - parseInt(trialStart);
+        const remaining = 14 - Math.floor(elapsed / (24 * 60 * 60 * 1000));
+        if (remaining > 0) {
+          tier = 'pro';
+          ctx.writeln(`\x1b[1;33m⏱️  Trial: ${remaining} days remaining\x1b[0m`);
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    
+    const color = tierColors[tier] || '0';
+    ctx.writeln('');
+    ctx.writeln('\x1b[1;36m╔══════════════════════════════════════════════════════════╗\x1b[0m');
+    ctx.writeln('\x1b[1;36m║                SubstrateOS License                       ║\x1b[0m');
+    ctx.writeln('\x1b[1;36m╚══════════════════════════════════════════════════════════╝\x1b[0m');
+    ctx.writeln('');
+    ctx.writeln(`  Current Tier: \x1b[1;${color}m${tier.toUpperCase()}\x1b[0m`);
+    if (email) ctx.writeln(`  Licensed to: ${email}`);
+    if (expires) ctx.writeln(`  Expires: ${expires}`);
+    ctx.writeln('');
+    ctx.writeln('\x1b[1;33mAvailable Tiers:\x1b[0m');
+    ctx.writeln('  \x1b[90mFree\x1b[0m       - 75+ commands, SQLite, 50MB storage');
+    ctx.writeln('  \x1b[34mDeveloper\x1b[0m  - Python, Node.js, Git, 200MB ($9/mo)');
+    ctx.writeln('  \x1b[35mPro\x1b[0m        - Agent SDK, 11 tools, 500MB ($19/mo)');
+    ctx.writeln('  \x1b[32mClassroom\x1b[0m  - Instructor dashboard, 25 seats ($299/yr)');
+    ctx.writeln('  \x1b[33mEnterprise\x1b[0m - SSO, Audit, Compliance (Custom)');
+    ctx.writeln('');
+    ctx.writeln('  \x1b[90mUpgrade at: https://substrateos.dev/pricing\x1b[0m');
+    ctx.writeln('');
+    return { exitCode: 0 };
+  },
+
+  // Activate license
+  activate: (args, ctx) => {
+    ctx.writeln('');
+    ctx.writeln('\x1b[1;36m╔══════════════════════════════════════════════════════════╗\x1b[0m');
+    ctx.writeln('\x1b[1;36m║              Activate SubstrateOS License                ║\x1b[0m');
+    ctx.writeln('\x1b[1;36m╚══════════════════════════════════════════════════════════╝\x1b[0m');
+    ctx.writeln('');
+    ctx.writeln('To activate your license:');
+    ctx.writeln('');
+    ctx.writeln('  1. Purchase at: \x1b[36mhttps://edwardstech.lemonsqueezy.com\x1b[0m');
+    ctx.writeln('  2. Check your email for the license key');
+    ctx.writeln('  3. Click the 🔐 icon in the terminal header');
+    ctx.writeln('     Or use the activation modal in the web UI');
+    ctx.writeln('');
+    ctx.writeln('To start a 14-day Pro trial:');
+    ctx.writeln('  Click "Start Trial" in the activation modal');
+    ctx.writeln('');
+    ctx.writeln('View current license: \x1b[33mlicense\x1b[0m');
     ctx.writeln('');
     return { exitCode: 0 };
   },
