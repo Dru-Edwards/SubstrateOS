@@ -15,6 +15,35 @@
   <a href="#-contributing">Contributing</a>
 </p>
 
+<p align="center">
+  <a href="https://edwardstech.lemonsqueezy.com/checkout/buy/52e14b1e-ba38-4f14-b1b2-a6b0e5397624" target="_blank">
+    <img src="https://img.shields.io/badge/🍋_Get_SubstrateOS-Buy_Now-yellow?style=for-the-badge" alt="Buy SubstrateOS">
+  </a>
+</p>
+
+---
+
+## 💰 Get SubstrateOS
+
+Choose the tier that fits your needs:
+
+| Tier | Price | Features |
+|------|-------|----------|
+| **Free** | $0 | 75+ commands, SQLite, 50MB storage |
+| **Developer** | $9/mo | Python, Node.js, Git, 200MB storage |
+| **Pro** | $19/mo | AI Agent SDK, 11 tools, 500MB storage |
+| **Classroom** | $299/yr | Instructor dashboard, 25 students |
+| **Enterprise** | Custom | SSO, Audit, Compliance, SLA |
+
+<a href="https://edwardstech.lemonsqueezy.com/checkout/buy/52e14b1e-ba38-4f14-b1b2-a6b0e5397624" class="lemonsqueezy-button">🍋 Buy SubstrateOS</a>
+
+<!-- Embed Lemon Squeezy overlay on your site -->
+```html
+<a href="https://edwardstech.lemonsqueezy.com/checkout/buy/52e14b1e-ba38-4f14-b1b2-a6b0e5397624?embed=1" 
+   class="lemonsqueezy-button">Buy SubstrateOS</a>
+<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+```
+
 ---
 
 ## ⚡ 30-Second Quickstart
