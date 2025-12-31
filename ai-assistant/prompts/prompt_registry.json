@@ -1,0 +1,61 @@
+{
+  "prompts": {
+    "shell_assistant": {
+      "description": "Main system prompt for shell assistance",
+      "latest": "v2",
+      "versions": [
+        {
+          "version": "v1",
+          "file": "versions/shell_assistant_v1.txt",
+          "description": "Initial version - basic shell help",
+          "created_at": "2024-12-01",
+          "metadata": {
+            "author": "system",
+            "eval_score": 0.82
+          }
+        },
+        {
+          "version": "v2",
+          "file": "system/shell_assistant.txt",
+          "description": "Enhanced with examples and citations",
+          "created_at": "2024-12-31",
+          "metadata": {
+            "author": "system",
+            "eval_score": 0.91,
+            "changes": ["Added example interactions", "Added citation requirement"]
+          }
+        }
+      ]
+    },
+    "agent_planner": {
+      "description": "Agent task planning prompt",
+      "latest": "v1",
+      "versions": [
+        {
+          "version": "v1",
+          "file": "system/agent_planner.txt",
+          "description": "Initial agent planner",
+          "created_at": "2024-12-31",
+          "metadata": {
+            "author": "system"
+          }
+        }
+      ]
+    },
+    "rag_query_expansion": {
+      "description": "Query expansion for better RAG retrieval",
+      "latest": "v1",
+      "versions": [
+        {
+          "version": "v1",
+          "file": "system/query_expansion.txt",
+          "description": "Initial query expansion prompt",
+          "created_at": "2024-12-31",
+          "metadata": {
+            "author": "system"
+          }
+        }
+      ]
+    }
+  }
+}

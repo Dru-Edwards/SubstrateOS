@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # AI Assistant API
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "9090:9090"  # Metrics
+    environment:
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./prompts:/app/prompts:ro
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ==========================================================================
+  # PostgreSQL with pgvector
+  # ==========================================================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: substrateos_ai
+      POSTGRES_USER: substrateos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U substrateos -d substrateos_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Redis (optional caching)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Streamlit UI (optional)
+  # ==========================================================================
+  ui:
+    build:
+      context: ./apps/ui
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    profiles:
+      - ui
+
+volumes:
+  postgres_data:
+  redis_data:

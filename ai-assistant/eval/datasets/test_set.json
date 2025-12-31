@@ -1,0 +1,122 @@
+[
+  {
+    "input": "How do I list files in a directory?",
+    "expected": "ls",
+    "criteria": ["ls", "directory"],
+    "category": "filesystem"
+  },
+  {
+    "input": "What command shows my current directory?",
+    "expected": "pwd",
+    "criteria": ["pwd", "print working directory"],
+    "category": "filesystem"
+  },
+  {
+    "input": "How do I view the contents of a file?",
+    "expected": "cat",
+    "criteria": ["cat", "file"],
+    "category": "filesystem"
+  },
+  {
+    "input": "How can I search for text in files?",
+    "expected": "grep",
+    "criteria": ["grep", "search", "pattern"],
+    "category": "text_processing"
+  },
+  {
+    "input": "Create a new directory",
+    "expected": "mkdir",
+    "criteria": ["mkdir", "directory"],
+    "category": "filesystem"
+  },
+  {
+    "input": "Delete a file",
+    "expected": "rm",
+    "criteria": ["rm", "remove"],
+    "category": "filesystem"
+  },
+  {
+    "input": "Copy a file to another location",
+    "expected": "cp",
+    "criteria": ["cp", "copy"],
+    "category": "filesystem"
+  },
+  {
+    "input": "Move or rename a file",
+    "expected": "mv",
+    "criteria": ["mv", "move", "rename"],
+    "category": "filesystem"
+  },
+  {
+    "input": "Show first 10 lines of a file",
+    "expected": "head",
+    "criteria": ["head", "first"],
+    "category": "text_processing"
+  },
+  {
+    "input": "Count lines in a file",
+    "expected": "wc",
+    "criteria": ["wc", "-l", "count"],
+    "category": "text_processing"
+  },
+  {
+    "input": "Run a SQL query",
+    "expected": "sql",
+    "criteria": ["sql", "SELECT"],
+    "category": "developer"
+  },
+  {
+    "input": "What packages are available?",
+    "expected": "apt list",
+    "criteria": ["apt", "list", "package"],
+    "category": "packages"
+  },
+  {
+    "input": "Show my username",
+    "expected": "whoami",
+    "criteria": ["whoami", "user"],
+    "category": "system"
+  },
+  {
+    "input": "What is today's date?",
+    "expected": "date",
+    "criteria": ["date"],
+    "category": "system"
+  },
+  {
+    "input": "Find all Python files",
+    "expected": "find",
+    "criteria": ["find", "*.py", "name"],
+    "category": "filesystem"
+  },
+  {
+    "input": "Sort lines alphabetically",
+    "expected": "sort",
+    "criteria": ["sort"],
+    "category": "text_processing"
+  },
+  {
+    "input": "Remove duplicate lines",
+    "expected": "uniq",
+    "criteria": ["uniq", "sort"],
+    "category": "text_processing"
+  },
+  {
+    "input": "Show environment variables",
+    "expected": "env",
+    "criteria": ["env", "printenv", "environment"],
+    "category": "system"
+  },
+  {
+    "input": "Calculate 2 + 2",
+    "expected": "calc",
+    "criteria": ["calc", "4"],
+    "category": "developer"
+  },
+  {
+    "input": "Generate a UUID",
+    "expected": "uuid",
+    "criteria": ["uuid"],
+    "category": "developer"
+  }
+]
