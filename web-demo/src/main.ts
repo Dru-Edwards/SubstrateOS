@@ -16,19 +16,87 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
-import { SubstrateOSRuntime, SubstrateOSMetrics, SubstrateOSShell } from '@substrateos/runtime';
-import { hostLogDevice, httpDevice, createStoreDevice } from '@substrateos/device-protocols';
+import { SubstrateOSMetrics, SubstrateOSShell } from '@substrateos/runtime';
+import { KernelSession } from '@substrateos/runtime';
+// Device protocols are available for advanced use but not currently used in demo
+// import { hostLogDevice, httpDevice, createStoreDevice } from '@substrateos/device-protocols';
 
 // Store logs in memory for observability
 const logHistory: any[] = [];
 const MAX_LOGS = 100;
+
+// Engine selection: '?engine=sim' uses the in-process SubstrateOSShell;
+// anything else (default) boots the real v86 kernel via KernelSession.
+const ENGINE = new URLSearchParams(location.search).get('engine') ?? 'kernel';
+
+interface KernelTelemetry {
+  transcript: string;
+  booted: boolean;
+  bootTimeMs: number | null;
+  sendInput?: (s: string) => void;
+}
+// Exposed for the Gate-G1 Playwright e2e (Task 6) and debugging.
+const kernelTelemetry: KernelTelemetry = { transcript: '', booted: false, bootTimeMs: null };
+(window as any).__substrateKernel = kernelTelemetry;
+
+let v86LoadPromise: Promise<void> | null = null;
+function loadV86(): Promise<void> {
+  if ((window as any).V86) return Promise.resolve();
+  if (!v86LoadPromise) {
+    v86LoadPromise = new Promise<void>((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = '/kernel/libv86.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('failed to load /kernel/libv86.js'));
+      document.head.appendChild(s);
+    });
+  }
+  return v86LoadPromise;
+}
+
+function attachKernel(terminal: Terminal): KernelSession {
+  const session = new KernelSession({
+    assetBase: '/kernel',
+    imageFile: 'substrate.iso',
+    memoryMB: 256,
+    bootTimeoutMs: 90000,
+    // "Ready for input" = a login prompt OR a shell prompt at the tail of the stream.
+    // The dev image boots to "(none) login:" then "/root% "; busybox images use "/ # ".
+    promptPattern: /(login:\s*$)|[#$%]\s?$/,
+    createEmulator: (cfg) => new (window as any).V86(cfg),
+    onOutput: (chunk) => {
+      terminal.write(chunk);
+      kernelTelemetry.transcript += chunk;
+      if (kernelTelemetry.transcript.length > 40000) {
+        kernelTelemetry.transcript = kernelTelemetry.transcript.slice(-20000);
+      }
+    },
+  });
+  // Test/debug seam: lets the e2e drive the real TTY without relying on xterm focus.
+  kernelTelemetry.sendInput = (s: string) => { try { session.sendInput(s); } catch { /* pre-boot */ } };
+  // Raw TTY: forward every keystroke straight to the kernel (no line buffering).
+  terminal.onData((d) => { try { session.sendInput(d); } catch { /* keystroke before boot */ } });
+  loadV86()
+    .then(() => session.boot())
+    .then(({ bootTimeMs }) => {
+      kernelTelemetry.booted = true;
+      kernelTelemetry.bootTimeMs = bootTimeMs;
+      updateStatus(`kernel ready (${bootTimeMs} ms)`, 'ready');
+    })
+    .catch((e) => {
+      terminal.write(`\r\n[kernel boot error] ${e && e.message ? e.message : e}\r\n`);
+      updateStatus('kernel boot failed', 'error');
+    });
+  return session;
+}
 
 // Terminal tab management
 interface TerminalTab {
   id: number;
   terminal: Terminal;
   fitAddon: FitAddon;
-  shell: SubstrateOSShell;
+  shell?: SubstrateOSShell;   // absent in kernel mode
+  kernel?: KernelSession;     // present in kernel mode
   element: HTMLElement;
   inputBuffer: string;
 }
@@ -257,15 +325,21 @@ function createTerminalTab(showMotdFn?: (term: Terminal, shell: SubstrateOSShell
   terminal.loadAddon(webLinksAddon);
   terminal.open(element);
   
-  // Create shell
-  const shell = new SubstrateOSShell(
-    { 
-      persistKey: `substrateos-tab-${id}`,
-      onOutput: (text) => terminal.write(text)
-    },
-    createDeviceCallbacks()
-  );
-  
+  // Create shell (kernel vs sim engine)
+  let shell: SubstrateOSShell | undefined;
+  let kernel: KernelSession | undefined;
+  if (ENGINE === 'kernel') {
+    kernel = attachKernel(terminal);
+  } else {
+    shell = new SubstrateOSShell(
+      {
+        persistKey: `substrateos-tab-${id}`,
+        onOutput: (text) => terminal.write(text)
+      },
+      createDeviceCallbacks()
+    );
+  }
+
   // Create tab element
   const addBtn = tabsContainer.querySelector('.terminal-tab-add');
   const tabEl = document.createElement('div');
@@ -301,20 +375,22 @@ function createTerminalTab(showMotdFn?: (term: Terminal, shell: SubstrateOSShell
     terminal,
     fitAddon,
     shell,
+    kernel,
     element,
     inputBuffer: ''
   };
-  
+
   terminals.push(tab);
-  
-  // Setup input handling
-  setupTerminalInput(tab);
-  
-  // Show MOTD if provided
-  if (showMotdFn) {
-    showMotdFn(terminal, shell);
+
+  // Setup input handling (sim-only; kernel uses raw onData wired in attachKernel)
+  if (ENGINE !== 'kernel') {
+    setupTerminalInput(tab);
+    // Show MOTD if provided
+    if (showMotdFn && shell) {
+      showMotdFn(terminal, shell);
+    }
   }
-  
+
   // Switch to new tab
   switchToTab(id);
   
@@ -374,7 +450,8 @@ function closeTab(id: number) {
 // Setup terminal input handling
 function setupTerminalInput(tab: TerminalTab) {
   const { terminal, shell } = tab;
-  
+  if (!shell) return;
+
   const showPrompt = () => {
     terminal.write(shell.getPrompt());
   };
@@ -513,27 +590,34 @@ async function main() {
   terminal.loadAddon(webLinksAddon);
   terminal.open(terminalContainer);
   
-  const shell = new SubstrateOSShell(
-    { 
-      persistKey: 'substrateos-demo',
-      onOutput: (text) => terminal.write(text)
-    },
-    createDeviceCallbacks()
-  );
-  
+  let shell: SubstrateOSShell | undefined;
+  let kernel: KernelSession | undefined;
+  if (ENGINE === 'kernel') {
+    kernel = attachKernel(terminal);
+  } else {
+    shell = new SubstrateOSShell(
+      {
+        persistKey: 'substrateos-demo',
+        onOutput: (text) => terminal.write(text)
+      },
+      createDeviceCallbacks()
+    );
+  }
+
   // Create first tab entry
   const firstTabEntry: TerminalTab = {
     id: 0,
     terminal,
     fitAddon,
     shell,
+    kernel,
     element: terminalContainer,
     inputBuffer: ''
   };
   terminals.push(firstTabEntry);
-  
-  // Setup input handling for first terminal
-  setupTerminalInput(firstTabEntry);
+
+  // Setup input handling for first terminal (sim-only)
+  if (ENGINE !== 'kernel') setupTerminalInput(firstTabEntry);
   
   // Handle window resize
   window.addEventListener('resize', () => {
@@ -551,14 +635,20 @@ async function main() {
   // Setup quick commands to use active terminal
   setupQuickCommands((cmd) => {
     const activeTab = getActiveTerminal();
-    if (activeTab) {
-      activeTab.terminal.write(cmd.slice(0, -1));
-      activeTab.inputBuffer = cmd.slice(0, -1);
+    if (!activeTab) return;
+    const command = cmd.slice(0, -1);
+    if (activeTab.shell) {
+      const shell = activeTab.shell;
+      activeTab.terminal.write(command);
+      activeTab.inputBuffer = command;
       activeTab.terminal.writeln('');
       activeTab.inputBuffer = '';
-      activeTab.shell.execute(cmd.slice(0, -1)).then(() => {
-        activeTab.terminal.write(activeTab.shell.getPrompt());
+      shell.execute(command).then(() => {
+        activeTab.terminal.write(shell.getPrompt());
       });
+    } else if (activeTab.kernel) {
+      // Kernel mode: feed the command straight to the real TTY.
+      activeTab.kernel.sendInput(command + '\n');
     }
   });
 
@@ -577,8 +667,8 @@ async function main() {
     document.getElementById('loading')?.classList.add('hidden');
   }, 500);
 
-  // Show welcome message
-  showMotd(terminal, shell);
+  // Show welcome message (sim only; kernel writes its own boot output)
+  if (ENGINE !== 'kernel' && shell) showMotd(terminal, shell);
 
   // Focus terminal and fit
   terminal.focus();
