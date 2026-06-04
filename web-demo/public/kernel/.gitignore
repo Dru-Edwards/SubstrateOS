@@ -1,0 +1,5 @@
+# v86 engine + kernel image are large binaries — keep them out of git.
+# Populate locally (see README.md). substrate.iso is produced by image/build.sh (Task 7).
+*
+!.gitignore
+!README.md
