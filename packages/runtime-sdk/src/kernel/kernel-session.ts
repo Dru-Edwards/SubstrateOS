@@ -57,6 +57,13 @@ export class KernelSession {
 
   get booted(): boolean { return this._booted; }
 
-  sendInput(_data: string): void { /* later task */ }
-  dispose(): void { /* later task */ }
+  sendInput(data: string): void {
+    if (!this.emu) throw new Error('KernelSession not booted');
+    this.emu.serial0_send(data);
+  }
+
+  dispose(): void {
+    this.emu?.stop();
+    this.emu = null;
+  }
 }

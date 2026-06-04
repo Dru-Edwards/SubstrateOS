@@ -22,6 +22,9 @@ export * from './runtime';
 // Re-export shell module
 export * from './shell';
 
+// Re-export kernel module
+export * from './kernel';
+
 // Re-export extensions module
 export * from './extensions';
 

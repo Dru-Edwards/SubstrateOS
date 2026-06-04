@@ -46,4 +46,25 @@ describe('KernelSession', () => {
     expect(session.booted).toBe(true);
     expect(chunks.join('')).toContain('/ # ');
   });
+
+  it('forwards input to the kernel serial port', async () => {
+    const { emu } = makeFakeEmu();
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu });
+    void session.boot();
+    session.sendInput('uname -a\n');
+    expect(emu.serial0_send).toHaveBeenCalledWith('uname -a\n');
+  });
+
+  it('throws if input is sent before boot', () => {
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => makeFakeEmu().emu });
+    expect(() => session.sendInput('x')).toThrow(/not booted/i);
+  });
+
+  it('dispose stops the emulator', async () => {
+    const { emu } = makeFakeEmu();
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu });
+    void session.boot();
+    session.dispose();
+    expect(emu.stop).toHaveBeenCalledTimes(1);
+  });
 });
