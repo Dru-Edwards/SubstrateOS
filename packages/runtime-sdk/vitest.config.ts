@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
     exclude: [
       'tests/e2e/**/*.test.ts',  // Exclude e2e tests that need Playwright
       'tests/devices/**/*.test.ts'  // Exclude device tests with missing imports
