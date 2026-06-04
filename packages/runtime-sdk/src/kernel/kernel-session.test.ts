@@ -57,7 +57,15 @@ describe('KernelSession', () => {
 
   it('throws if input is sent before boot', () => {
     const session = new KernelSession({ onOutput: () => {}, createEmulator: () => makeFakeEmu().emu });
-    expect(() => session.sendInput('x')).toThrow(/not booted/i);
+    expect(() => session.sendInput('x')).toThrow(/not started/i);
+  });
+
+  it('throws if input is sent after dispose', () => {
+    const { emu } = makeFakeEmu();
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu });
+    void session.boot();
+    session.dispose();
+    expect(() => session.sendInput('x')).toThrow(/not started/i);
   });
 
   it('dispose stops the emulator', async () => {
@@ -66,5 +74,45 @@ describe('KernelSession', () => {
     void session.boot();
     session.dispose();
     expect(emu.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores serial output after dispose', () => {
+    const { emu, emit } = makeFakeEmu();
+    const chunks: string[] = [];
+    const session = new KernelSession({ onOutput: (c) => chunks.push(c), createEmulator: () => emu });
+    void session.boot();
+    emit('hello');
+    const before = chunks.length;
+    session.dispose();
+    emit('world');
+    expect(chunks.length).toBe(before); // no output appended after dispose
+  });
+
+  it('uses imageConfig override instead of cdrom when provided', () => {
+    const createEmulator = vi.fn(() => makeFakeEmu().emu);
+    const session = new KernelSession({
+      onOutput: () => {},
+      createEmulator,
+      imageConfig: { bzimage: { url: '/k/bzImage' }, initrd: { url: '/k/initrd' } },
+    });
+    void session.boot();
+    const cfg = createEmulator.mock.calls[0][0] as Record<string, any>;
+    expect(cfg.cdrom).toBeUndefined();
+    expect(cfg.bzimage.url).toBe('/k/bzImage');
+    expect(cfg.initrd.url).toBe('/k/initrd');
+  });
+
+  it('rejects boot() if the prompt never appears within bootTimeoutMs', async () => {
+    vi.useFakeTimers();
+    try {
+      const { emu } = makeFakeEmu();
+      const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu, bootTimeoutMs: 5000 });
+      const bootP = session.boot();
+      const assertion = expect(bootP).rejects.toThrow(/timed out/i);
+      await vi.advanceTimersByTimeAsync(5000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

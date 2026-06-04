@@ -19,6 +19,8 @@ export interface KernelSessionOptions {
   onOutput: (chunk: string) => void;
   /** Regex that signals "shell is ready". Default busybox root prompt. */
   promptPattern?: RegExp;
+  /** Reject boot() if no prompt is seen within this many ms. Default 0 (disabled). */
+  bootTimeoutMs?: number;
   /** DI: builds the emulator. Default `new (globalThis as any).V86(config)`. */
   createEmulator?: V86Factory;
   /** DI: time source for boot timing. Default performance.now. */
