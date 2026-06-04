@@ -1,0 +1,32 @@
+# SubstrateOS — Buildroot defconfig for v86 (32-bit, serial console, initramfs)
+# Target: modern kernel (6.6.x) bootable in v86 as bzImage + rootfs.cpio.gz.
+# Build:  bash image/build.sh   (native WSL Ubuntu; deps: cpio unzip bzip2 patch perl)
+
+# --- Architecture: 32-bit x86 (v86 has no 64-bit kernel support) ---
+BR2_x86_i686=y
+
+# --- Toolchain: Buildroot-built uClibc-ng (default; fast, small) ---
+BR2_TOOLCHAIN_BUILDROOT_CXX=y
+
+# --- Init / userland: BusyBox (default) ---
+BR2_INIT_BUSYBOX=y
+
+# --- Serial console getty on ttyS0 (v86 wires serial0 <-> xterm) ---
+BR2_TARGET_GENERIC_GETTY_PORT="ttyS0"
+BR2_TARGET_GENERIC_GETTY_BAUDRATE_115200=y
+
+# --- Empty root password so login is friction-free in the browser ---
+BR2_TARGET_GENERIC_ROOT_PASSWD=""
+
+# --- Linux kernel 6.6.x, 32-bit arch default config, bzImage ---
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="6.6.32"
+BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
+BR2_LINUX_KERNEL_BZIMAGE=y
+
+# --- Root filesystem as a gzip'd cpio initramfs (loaded by v86 as initrd) ---
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_TARGET_ROOTFS_CPIO_GZIP=y
+# Don't also build the default ext2/tar images we won't use:
+# (leaving other BR2_TARGET_ROOTFS_* unset keeps the build lean)
