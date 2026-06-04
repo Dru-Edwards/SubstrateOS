@@ -25,4 +25,25 @@ describe('KernelSession', () => {
     expect((cfg.cdrom as any).url).toBe('/kernel/substrate.iso');
     expect(cfg.autostart).toBe(true);
   });
+
+  it('streams serial output and resolves boot() with bootTimeMs when the prompt appears', async () => {
+    const { emu, emit } = makeFakeEmu();
+    let t = 1000;
+    const now = () => t;
+    const chunks: string[] = [];
+    const session = new KernelSession({
+      onOutput: (c) => chunks.push(c),
+      createEmulator: () => emu,
+      now,
+    });
+    const bootP = session.boot();
+    expect(session.booted).toBe(false);
+    emit('boot messages...\n');
+    t = 1500;
+    emit('\n/ # ');                 // busybox prompt
+    const { bootTimeMs } = await bootP;
+    expect(bootTimeMs).toBe(500);   // 1500 - 1000
+    expect(session.booted).toBe(true);
+    expect(chunks.join('')).toContain('/ # ');
+  });
 });
