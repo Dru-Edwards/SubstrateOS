@@ -8,6 +8,7 @@ export class KernelSession {
   private t0 = 0;
   private bootMs = 0;
   private resolveBoot: ((v: { bootTimeMs: number }) => void) | null = null;
+  private rejectBoot: ((e: Error) => void) | null = null;
   private bootTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(opts: KernelSessionOptions) {
@@ -56,7 +57,14 @@ export class KernelSession {
       // Keep only a short rolling tail for prompt detection — the prompt is
       // always at the end of the stream, so a small window suffices.
       this.tail = (this.tail + ch).slice(-256);
-      if (!this._booted && this.opts.promptPattern.test(this.tail)) {
+      if (this._booted) return;
+      // Fail fast on a kernel panic instead of waiting for a prompt that will
+      // never appear (otherwise boot() only fails at the bootTimeout, if any).
+      if (/Kernel panic/i.test(this.tail)) {
+        this.failBoot(new Error('KernelSession: kernel panic during boot'));
+        return;
+      }
+      if (this.opts.promptPattern.test(this.tail)) {
         this.markBooted();
       }
     });
@@ -75,11 +83,11 @@ export class KernelSession {
     return new Promise((resolve, reject) => {
       if (this._booted) { resolve({ bootTimeMs: this.bootMs }); return; }
       this.resolveBoot = resolve;
+      this.rejectBoot = reject;
       if (timeoutMs > 0) {
         this.bootTimer = setTimeout(() => {
           this.bootTimer = null;
-          this.resolveBoot = null;
-          reject(new Error(`KernelSession boot timed out after ${timeoutMs}ms`));
+          this.failBoot(new Error(`KernelSession boot timed out after ${timeoutMs}ms`));
         }, timeoutMs);
       }
     });
@@ -92,6 +100,15 @@ export class KernelSession {
     this.clearBootTimer();
     this.resolveBoot?.({ bootTimeMs: this.bootMs });
     this.resolveBoot = null;
+    this.rejectBoot = null;
+  }
+
+  private failBoot(err: Error): void {
+    if (this._booted) return;
+    this.clearBootTimer();
+    this.rejectBoot?.(err);
+    this.resolveBoot = null;
+    this.rejectBoot = null;
   }
 
   get booted(): boolean { return this._booted; }

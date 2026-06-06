@@ -133,6 +133,15 @@ describe('KernelSession', () => {
     expect(emu.serial0_send).toHaveBeenCalledWith('\n'); // prompt nudge
   });
 
+  it('rejects boot() on a kernel panic instead of waiting for a prompt', async () => {
+    const { emu, emit } = makeFakeEmu();
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu });
+    const bootP = session.boot();
+    emit('[    0.46] Kernel panic - not syncing: Attempted to kill the idle task!\n');
+    await expect(bootP).rejects.toThrow(/panic/i);
+    expect(session.booted).toBe(false);
+  });
+
   it('rejects boot() if the prompt never appears within bootTimeoutMs', async () => {
     vi.useFakeTimers();
     try {

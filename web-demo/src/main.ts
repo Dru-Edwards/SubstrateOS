@@ -36,6 +36,7 @@ interface KernelTelemetry {
   transcript: string;
   booted: boolean;
   bootTimeMs: number | null;
+  error: string | null;
   sendInput?: (s: string) => void;
 }
 // Exposed for the Gate-G1 Playwright e2e (Task 6) and debugging.
@@ -44,7 +45,7 @@ interface KernelTelemetry {
 // (transcript/booted/sendInput all point at it). Fine while the default engine is
 // 'sim' and kernel mode is single-tab opt-in; revisit (per-tab keying) if/when
 // multiple concurrent kernel tabs become a supported scenario.
-const kernelTelemetry: KernelTelemetry = { transcript: '', booted: false, bootTimeMs: null };
+const kernelTelemetry: KernelTelemetry = { transcript: '', booted: false, bootTimeMs: null, error: null };
 (window as any).__substrateKernel = kernelTelemetry;
 
 let v86LoadPromise: Promise<void> | null = null;
@@ -70,13 +71,14 @@ function attachKernel(terminal: Terminal): KernelSession {
     imageConfig: {
       bzimage: { url: '/kernel/bzImage' },
       initrd: { url: '/kernel/rootfs.cpio.gz' },
-      cmdline: 'console=ttyS0 mitigations=off',
+      cmdline: 'console=ttyS0 nolapic noapic mitigations=off',
     },
     memoryMB: 256,
     bootTimeoutMs: 90000,
-    // "Ready for input" = a login prompt OR a shell prompt at the tail of the stream.
-    // The dev image boots to "(none) login:" then "/root% "; busybox images use "/ # ".
-    promptPattern: /(login:\s*$)|[#$%]\s?$/,
+    // "Ready" = the Buildroot login prompt at the tail. Intentionally NOT a loose
+    // [#$%] match — boot-log lines momentarily end in those chars and would fire a
+    // false "booted" mid-boot (which previously let a PANICKING kernel pass the gate).
+    promptPattern: /login:\s*$/,
     createEmulator: (cfg) => new (window as any).V86(cfg),
     onOutput: (chunk) => {
       terminal.write(chunk);
@@ -98,7 +100,9 @@ function attachKernel(terminal: Terminal): KernelSession {
       updateStatus(`kernel ready (${bootTimeMs} ms)`, 'ready');
     })
     .catch((e) => {
-      terminal.write(`\r\n[kernel boot error] ${e && e.message ? e.message : e}\r\n`);
+      const msg = e && e.message ? e.message : String(e);
+      kernelTelemetry.error = msg;
+      terminal.write(`\r\n[kernel boot error] ${msg}\r\n`);
       updateStatus('kernel boot failed', 'error');
     });
   return session;
