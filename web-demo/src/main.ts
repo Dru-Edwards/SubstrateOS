@@ -26,8 +26,11 @@ const logHistory: any[] = [];
 const MAX_LOGS = 100;
 
 // Engine selection: '?engine=sim' uses the in-process SubstrateOSShell;
-// anything else (default) boots the real v86 kernel via KernelSession.
-const ENGINE = new URLSearchParams(location.search).get('engine') ?? 'kernel';
+// '?engine=kernel' boots the real v86 Linux kernel via KernelSession.
+// Default stays 'sim' for now — the real kernel is proven (Gate G1) and opt-in;
+// flipping the default is a deliberate later-phase step (after persistence,
+// networking, and tier truth-alignment land), not a Phase 1 change.
+const ENGINE = new URLSearchParams(location.search).get('engine') ?? 'sim';
 
 interface KernelTelemetry {
   transcript: string;
@@ -57,7 +60,13 @@ function loadV86(): Promise<void> {
 function attachKernel(terminal: Terminal): KernelSession {
   const session = new KernelSession({
     assetBase: '/kernel',
-    imageFile: 'substrate.iso',
+    // Modern Buildroot 6.6 image: bzImage + initramfs. cmdline puts the kernel
+    // console on ttyS0 so the serial bridge (serial0 -> xterm) sees boot + login.
+    imageConfig: {
+      bzimage: { url: '/kernel/bzImage' },
+      initrd: { url: '/kernel/rootfs.cpio.gz' },
+      cmdline: 'console=ttyS0 mitigations=off',
+    },
     memoryMB: 256,
     bootTimeoutMs: 90000,
     // "Ready for input" = a login prompt OR a shell prompt at the tail of the stream.
