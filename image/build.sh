@@ -11,6 +11,11 @@
 # symlinks/permissions). Only the defconfig and final artifacts cross the mount.
 set -euo pipefail
 
+# Buildroot refuses to build if $PATH contains spaces. Under WSL the Windows PATH
+# (full of "Program Files"-style entries) is appended to the Linux PATH, so strip
+# down to a clean Linux-only PATH for the build.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 BR_VER="2024.02.10"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
