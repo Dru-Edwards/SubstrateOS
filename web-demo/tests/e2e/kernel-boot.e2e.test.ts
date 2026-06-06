@@ -6,9 +6,9 @@ import { test, expect } from '@playwright/test';
  * Drives the real KernelSession via the window.__substrateKernel.sendInput seam
  * (set up in main.ts kernel mode) so the test doesn't depend on xterm focus.
  *
- * NOTE: with the Phase-0 DEV image (kernel 2.6) the final "modern kernel" assertion
- * FAILS BY DESIGN — that failure is what makes G1 genuinely depend on Task 7's
- * Buildroot 6.6 image. Once substrate.iso is the modern image, this goes green.
+ * Boots the modern Buildroot 6.6 image (bzImage + rootfs.cpio.gz, console=ttyS0)
+ * via ?engine=kernel and asserts a real modern (>= 5.x) uname. Green as of the
+ * 6.6 image landing; on the old 2.6 dev image the >= 5 assertion failed by design.
  */
 test('boots a real Linux kernel through the SubstrateOS UI and reports a modern uname', async ({ page }) => {
   test.setTimeout(120_000);

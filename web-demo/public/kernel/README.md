@@ -12,7 +12,7 @@ These files are **git-ignored** (large binaries). Vite serves this directory at 
 | `bzImage` | modern Linux 6.6 kernel — built by `image/build.sh` |
 | `rootfs.cpio.gz` | gzip'd initramfs — built by `image/build.sh` |
 
-`KernelSession` boots `bzImage` + `rootfs.cpio.gz` (initramfs) with `cmdline: console=ttyS0`.
+`KernelSession` boots `bzImage` + `rootfs.cpio.gz` (initramfs) with `cmdline: console=ttyS0 mitigations=off`.
 (`substrate.iso` was the Phase-0 dev image and is no longer used.)
 
 ## Populate locally

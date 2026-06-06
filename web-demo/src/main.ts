@@ -39,6 +39,11 @@ interface KernelTelemetry {
   sendInput?: (s: string) => void;
 }
 // Exposed for the Gate-G1 Playwright e2e (Task 6) and debugging.
+// KNOWN LIMITATION (Phase 1): this telemetry is a single global, so it tracks only
+// ONE kernel session. Opening multiple kernel tabs makes the last-attached tab win
+// (transcript/booted/sendInput all point at it). Fine while the default engine is
+// 'sim' and kernel mode is single-tab opt-in; revisit (per-tab keying) if/when
+// multiple concurrent kernel tabs become a supported scenario.
 const kernelTelemetry: KernelTelemetry = { transcript: '', booted: false, bootTimeMs: null };
 (window as any).__substrateKernel = kernelTelemetry;
 
@@ -443,9 +448,10 @@ function closeTab(id: number) {
   tab.element.remove();
   document.querySelector(`.terminal-tab[data-tab="${id}"]`)?.remove();
   
-  // Dispose terminal
+  // Dispose terminal + stop the kernel VM (frees the v86 WASM instance + listener)
+  tab.kernel?.dispose();
   tab.terminal.dispose();
-  
+
   // Remove from array
   terminals.splice(idx, 1);
   
