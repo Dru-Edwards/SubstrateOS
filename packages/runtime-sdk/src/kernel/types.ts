@@ -2,6 +2,10 @@ export interface V86Like {
   add_listener(event: 'serial0-output-byte', cb: (byte: number) => void): void;
   serial0_send(data: string): void;
   stop(): void;
+  /** Full VM snapshot (memory + devices). Present on real v86; optional for fakes. */
+  save_state?(): Promise<ArrayBuffer>;
+  /** Restore a snapshot produced by save_state(). */
+  restore_state?(state: ArrayBuffer): Promise<void>;
 }
 
 export type V86Factory = (config: Record<string, unknown>) => V86Like;
@@ -21,6 +25,8 @@ export interface KernelSessionOptions {
   promptPattern?: RegExp;
   /** Reject boot() if no prompt is seen within this many ms. Default 0 (disabled). */
   bootTimeoutMs?: number;
+  /** If set, boot() warm-restores this snapshot instead of cold-booting. */
+  initialState?: ArrayBuffer;
   /** DI: builds the emulator. Default `new (globalThis as any).V86(config)`. */
   createEmulator?: V86Factory;
   /** DI: time source for boot timing. Default performance.now. */

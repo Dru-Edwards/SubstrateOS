@@ -8,6 +8,8 @@ function makeFakeEmu() {
     add_listener: vi.fn((ev: string, cb: (b: number) => void) => { listeners[ev] = cb; }),
     serial0_send: vi.fn(),
     stop: vi.fn(),
+    save_state: vi.fn(async () => new ArrayBuffer(0)),
+    restore_state: vi.fn(async () => {}),
   };
   return { emu, emit: (s: string) => { for (const ch of s) listeners['serial0-output-byte']?.(ch.charCodeAt(0)); } };
 }
@@ -100,6 +102,35 @@ describe('KernelSession', () => {
     expect(cfg.cdrom).toBeUndefined();
     expect(cfg.bzimage.url).toBe('/k/bzImage');
     expect(cfg.initrd.url).toBe('/k/initrd');
+  });
+
+  it('saveState() returns the emulator snapshot', async () => {
+    const { emu } = makeFakeEmu();
+    const snap = new ArrayBuffer(8);
+    (emu.save_state as any).mockResolvedValue(snap);
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu });
+    void session.boot();
+    await expect(session.saveState()).resolves.toBe(snap);
+    expect(emu.save_state).toHaveBeenCalledTimes(1);
+  });
+
+  it('saveState() throws before boot', async () => {
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => makeFakeEmu().emu });
+    await expect(session.saveState()).rejects.toThrow(/not started/i);
+  });
+
+  it('boot() with initialState restores the snapshot and resolves without a prompt', async () => {
+    const { emu } = makeFakeEmu();
+    const state = new ArrayBuffer(16);
+    let t = 100;
+    const now = () => t;
+    (emu.restore_state as any).mockImplementation(async () => { t = 142; });
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu, initialState: state, now });
+    const { bootTimeMs } = await session.boot();
+    expect(emu.restore_state).toHaveBeenCalledWith(state);
+    expect(session.booted).toBe(true);
+    expect(bootTimeMs).toBe(42); // 142 - 100
+    expect(emu.serial0_send).toHaveBeenCalledWith('\n'); // prompt nudge
   });
 
   it('rejects boot() if the prompt never appears within bootTimeoutMs', async () => {
