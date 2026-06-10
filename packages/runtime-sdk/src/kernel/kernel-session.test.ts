@@ -3,16 +3,22 @@ import { KernelSession } from './kernel-session';
 import type { V86Like } from './types';
 
 function makeFakeEmu() {
-  const listeners: Record<string, (b: number) => void> = {};
+  const listeners: Record<string, (...args: any[]) => void> = {};
   const emu: V86Like = {
-    add_listener: vi.fn((ev: string, cb: (b: number) => void) => { listeners[ev] = cb; }),
+    add_listener: vi.fn((ev: string, cb: (...args: any[]) => void) => { listeners[ev] = cb; }),
     serial0_send: vi.fn(),
     stop: vi.fn(),
     save_state: vi.fn(async () => new ArrayBuffer(0)),
     restore_state: vi.fn(async () => {}),
   };
-  return { emu, emit: (s: string) => { for (const ch of s) listeners['serial0-output-byte']?.(ch.charCodeAt(0)); } };
+  return {
+    emu,
+    emit: (s: string) => { for (const ch of s) listeners['serial0-output-byte']?.(ch.charCodeAt(0)); },
+    fire: (ev: string, ...args: any[]) => listeners[ev]?.(...args),
+  };
 }
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
 
 describe('KernelSession', () => {
   it('builds the v86 config with vendored asset paths and memory', async () => {
@@ -119,18 +125,49 @@ describe('KernelSession', () => {
     await expect(session.saveState()).rejects.toThrow(/not started/i);
   });
 
-  it('boot() with initialState restores the snapshot and resolves without a prompt', async () => {
-    const { emu } = makeFakeEmu();
+  it('boot() hands initialState to v86 as initial_state and resolves on emulator-ready', async () => {
+    const { emu, fire } = makeFakeEmu();
     const state = new ArrayBuffer(16);
+    const createEmulator = vi.fn(() => emu);
     let t = 100;
     const now = () => t;
-    (emu.restore_state as any).mockImplementation(async () => { t = 142; });
-    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu, initialState: state, now });
-    const { bootTimeMs } = await session.boot();
-    expect(emu.restore_state).toHaveBeenCalledWith(state);
+    const session = new KernelSession({ onOutput: () => {}, createEmulator, initialState: state, now });
+    const bootP = session.boot();
+    const cfg = createEmulator.mock.calls[0][0] as Record<string, any>;
+    // Restored through v86's own init via initial_state — NOT a manual restore_state.
+    expect(cfg.initial_state.buffer).toBe(state);
+    expect(emu.restore_state).not.toHaveBeenCalled();
+    t = 130;
+    fire('emulator-ready');
+    const { bootTimeMs } = await bootP;
     expect(session.booted).toBe(true);
-    expect(bootTimeMs).toBe(42); // 142 - 100
+    expect(bootTimeMs).toBe(30); // 130 - 100
     expect(emu.serial0_send).toHaveBeenCalledWith('\n'); // prompt nudge
+  });
+
+  it('boot() resolves an async initialState thunk into v86 initial_state', async () => {
+    const { emu, fire } = makeFakeEmu();
+    const state = new ArrayBuffer(16);
+    const createEmulator = vi.fn(() => emu);
+    const session = new KernelSession({ onOutput: () => {}, createEmulator, initialState: async () => state });
+    const bootP = session.boot();
+    await tick(); // let the thunk resolve + the emulator construct
+    const cfg = createEmulator.mock.calls[0][0] as Record<string, any>;
+    expect(cfg.initial_state.buffer).toBe(state);
+    fire('emulator-ready');
+    await bootP;
+    expect(session.booted).toBe(true);
+  });
+
+  it('boot() cold-boots when the initialState thunk returns null', async () => {
+    const { emu, emit } = makeFakeEmu();
+    const session = new KernelSession({ onOutput: () => {}, createEmulator: () => emu, initialState: async () => null });
+    const bootP = session.boot();
+    await tick(); // let the null thunk resolve + emulator construct + listener register
+    emit('\n/ # '); // busybox prompt (default promptPattern)
+    await bootP;
+    expect(emu.restore_state).not.toHaveBeenCalled();
+    expect(session.booted).toBe(true);
   });
 
   it('rejects boot() on a kernel panic instead of waiting for a prompt', async () => {

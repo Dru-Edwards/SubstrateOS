@@ -18,6 +18,10 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import { SubstrateOSMetrics, SubstrateOSShell } from '@substrateos/runtime';
 import { KernelSession } from '@substrateos/runtime';
+import { loadSnapshot, saveSnapshot } from './snapshot-store';
+
+// Stable key for the persisted VM snapshot (one per image format).
+const SNAPSHOT_KEY = 'kernel:buildroot-6.6';
 // Device protocols are available for advanced use but not currently used in demo
 // import { hostLogDevice, httpDevice, createStoreDevice } from '@substrateos/device-protocols';
 
@@ -38,6 +42,7 @@ interface KernelTelemetry {
   bootTimeMs: number | null;
   error: string | null;
   sendInput?: (s: string) => void;
+  saveSnapshot?: () => Promise<void>;
 }
 // Exposed for the Gate-G1 Playwright e2e (Task 6) and debugging.
 // KNOWN LIMITATION (Phase 1): this telemetry is a single global, so it tracks only
@@ -75,11 +80,18 @@ function attachKernel(terminal: Terminal): KernelSession {
     },
     memoryMB: 256,
     bootTimeoutMs: 90000,
+    // Warm-restore a saved snapshot if one exists (skips the cold boot), else
+    // fall through to a normal boot. Thunk is resolved inside boot().
+    initialState: () => loadSnapshot(SNAPSHOT_KEY).catch(() => null),
     // "Ready" = the Buildroot login prompt at the tail. Intentionally NOT a loose
     // [#$%] match — boot-log lines momentarily end in those chars and would fire a
     // false "booted" mid-boot (which previously let a PANICKING kernel pass the gate).
     promptPattern: /login:\s*$/,
-    createEmulator: (cfg) => new (window as any).V86(cfg),
+    createEmulator: (cfg) => {
+      const emu = new (window as any).V86(cfg);
+      (window as any).__v86emu = emu; // debug/spike hook: raw save_state/restore_state
+      return emu;
+    },
     onOutput: (chunk) => {
       terminal.write(chunk);
       kernelTelemetry.transcript += chunk;
@@ -90,6 +102,14 @@ function attachKernel(terminal: Terminal): KernelSession {
   });
   // Test/debug seam: lets the e2e drive the real TTY without relying on xterm focus.
   kernelTelemetry.sendInput = (s: string) => { try { session.sendInput(s); } catch { /* pre-boot */ } };
+  // Persist the running VM (compressed) to IndexedDB so it survives a reload.
+  kernelTelemetry.saveSnapshot = async () => {
+    if (!session.booted) return;
+    await saveSnapshot(SNAPSHOT_KEY, await session.saveState());
+  };
+  // Best-effort autosave when the tab is closing (browsers allow a short sync
+  // window; this kicks off the save without blocking unload).
+  window.addEventListener('beforeunload', () => { void kernelTelemetry.saveSnapshot?.(); });
   // Raw TTY: forward every keystroke straight to the kernel (no line buffering).
   terminal.onData((d) => { try { session.sendInput(d); } catch { /* keystroke before boot */ } });
   loadV86()

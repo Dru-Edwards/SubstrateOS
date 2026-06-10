@@ -22,7 +22,7 @@ export class KernelSession {
     };
   }
 
-  private buildConfig(): Record<string, unknown> {
+  private buildConfig(initialState?: ArrayBuffer): Record<string, unknown> {
     const base = this.opts.assetBase;
     const image = this.opts.imageConfig ?? { cdrom: { url: `${base}/${this.opts.imageFile}` } };
     return {
@@ -34,6 +34,10 @@ export class KernelSession {
       autostart: true,
       disable_keyboard: true,
       disable_mouse: true,
+      // Warm restore must go through v86's own init (it calls restore_state at the
+      // right point). Calling restore_state on a fresh emulator throws ("set_state"
+      // on undefined) — so the snapshot is handed to v86 as initial_state instead.
+      ...(initialState ? { initial_state: { buffer: initialState } } : {}),
       ...image,
     };
   }
@@ -42,12 +46,27 @@ export class KernelSession {
 
   async boot(): Promise<{ bootTimeMs: number }> {
     const factory = this.opts.createEmulator ?? this.defaultFactory;
+    // Resolve any warm-restore snapshot BEFORE building the config — v86 restores
+    // it during its own init via initial_state (see buildConfig).
+    const initOpt = this.opts.initialState;
+    const initialState = (typeof initOpt === 'function' ? await initOpt() : initOpt) ?? undefined;
+
     this.t0 = this.opts.now();
-    this.emu = factory(this.buildConfig());
+    this.emu = factory(this.buildConfig(initialState));
     const emu = this.emu;
 
+    const timeoutMs = this.opts.bootTimeoutMs ?? 0;
+    const armTimeout = () => {
+      if (timeoutMs > 0) {
+        this.bootTimer = setTimeout(() => {
+          this.bootTimer = null;
+          this.failBoot(new Error(`KernelSession boot timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }
+    };
+
     // Stream serial output for both cold and warm boot. On cold boot, a prompt
-    // match resolves boot(); on warm boot we resolve explicitly after restore.
+    // match resolves boot(); on warm boot we resolve on 'emulator-ready'.
     emu.add_listener('serial0-output-byte', (byte: number) => {
       // Ignore output that arrives after dispose() — the emulator may still
       // emit a final byte or two before it fully stops.
@@ -69,27 +88,24 @@ export class KernelSession {
       }
     });
 
-    // Warm restore: resume a saved snapshot instead of cold-booting.
-    if (this.opts.initialState) {
-      if (!emu.restore_state) throw new Error('KernelSession: emulator has no restore_state');
-      await emu.restore_state(this.opts.initialState);
-      this.markBooted();
-      emu.serial0_send('\n'); // nudge a fresh prompt for the restored shell
-      return { bootTimeMs: this.bootMs };
+    // Warm restore: v86 restored the snapshot during init (initial_state) and
+    // fires 'emulator-ready' when the VM is live again. Resolve on that, then
+    // nudge the restored shell for a fresh prompt.
+    if (initialState) {
+      emu.add_listener('emulator-ready', () => {
+        if (this._booted) return;
+        this.markBooted();
+        emu.serial0_send('\n');
+      });
     }
 
-    // Cold boot: resolve when the prompt appears (or reject on timeout).
-    const timeoutMs = this.opts.bootTimeoutMs ?? 0;
+    // Resolve when the prompt appears (cold) or 'emulator-ready' fires (warm),
+    // or reject on timeout.
     return new Promise((resolve, reject) => {
       if (this._booted) { resolve({ bootTimeMs: this.bootMs }); return; }
       this.resolveBoot = resolve;
       this.rejectBoot = reject;
-      if (timeoutMs > 0) {
-        this.bootTimer = setTimeout(() => {
-          this.bootTimer = null;
-          this.failBoot(new Error(`KernelSession boot timed out after ${timeoutMs}ms`));
-        }, timeoutMs);
-      }
+      armTimeout();
     });
   }
 
