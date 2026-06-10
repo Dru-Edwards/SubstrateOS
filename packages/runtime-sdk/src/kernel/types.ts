@@ -27,6 +27,12 @@ export interface KernelSessionOptions {
   /** Reject boot() if no prompt is seen within this many ms. Default 0 (disabled). */
   bootTimeoutMs?: number;
   /**
+   * If set, connects the emulated NE2000 NIC to a WISP relay for real TCP/UDP
+   * (e.g. 'wss://relay.example/' or 'ws://localhost:6001/'). Omit to keep the VM
+   * offline. The relay (ETI-hosted in production) enforces allowlist/rate-limit.
+   */
+  networkRelayUrl?: string;
+  /**
    * If set, boot() warm-restores this snapshot instead of cold-booting.
    * May be an ArrayBuffer or an async thunk (resolved at boot; null/undefined
    * → fall through to a normal cold boot).

@@ -110,6 +110,16 @@ describe('KernelSession', () => {
     expect(cfg.initrd.url).toBe('/k/initrd');
   });
 
+  it('adds network_relay_url to the v86 config only when set', () => {
+    const withNet = vi.fn(() => makeFakeEmu().emu);
+    void new KernelSession({ onOutput: () => {}, createEmulator: withNet, networkRelayUrl: 'ws://localhost:6001/' }).boot();
+    expect((withNet.mock.calls[0][0] as any).network_relay_url).toBe('ws://localhost:6001/');
+
+    const noNet = vi.fn(() => makeFakeEmu().emu);
+    void new KernelSession({ onOutput: () => {}, createEmulator: noNet }).boot();
+    expect((noNet.mock.calls[0][0] as any).network_relay_url).toBeUndefined();
+  });
+
   it('saveState() returns the emulator snapshot', async () => {
     const { emu } = makeFakeEmu();
     const snap = new ArrayBuffer(8);

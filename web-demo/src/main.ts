@@ -35,6 +35,9 @@ const MAX_LOGS = 100;
 // flipping the default is a deliberate later-phase step (after persistence,
 // networking, and tier truth-alignment land), not a Phase 1 change.
 const ENGINE = new URLSearchParams(location.search).get('engine') ?? 'sim';
+// Optional WISP relay for real networking, e.g. ?net=ws://localhost:6001/.
+// Empty = offline (no third-party routing in committed defaults).
+const NET_RELAY = new URLSearchParams(location.search).get('net') ?? '';
 
 interface KernelTelemetry {
   transcript: string;
@@ -80,6 +83,7 @@ function attachKernel(terminal: Terminal): KernelSession {
     },
     memoryMB: 256,
     bootTimeoutMs: 90000,
+    networkRelayUrl: NET_RELAY || undefined,
     // Warm-restore a saved snapshot if one exists (skips the cold boot), else
     // fall through to a normal boot. Thunk is resolved inside boot().
     initialState: () => loadSnapshot(SNAPSHOT_KEY).catch(() => null),

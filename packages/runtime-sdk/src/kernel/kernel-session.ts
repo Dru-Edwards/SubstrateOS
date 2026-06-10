@@ -34,6 +34,8 @@ export class KernelSession {
       autostart: true,
       disable_keyboard: true,
       disable_mouse: true,
+      // Real networking via a WISP relay (the emulated NE2000 ↔ relay bridge).
+      ...(this.opts.networkRelayUrl ? { network_relay_url: this.opts.networkRelayUrl } : {}),
       // Warm restore must go through v86's own init (it calls restore_state at the
       // right point). Calling restore_state on a fresh emulator throws ("set_state"
       // on undefined) — so the snapshot is handed to v86 as initial_state instead.
