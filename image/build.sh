@@ -42,6 +42,10 @@ cd "buildroot-$BR_VER"
 
 cp "$REPO_ROOT/image/substrate_defconfig" configs/substrate_defconfig
 make substrate_defconfig
+# Point Buildroot at the post-build hook (absolute path; can't live in defconfig).
+sed -i "s/\r$//" "$REPO_ROOT/image/post-build.sh" 2>/dev/null || true
+echo "BR2_ROOTFS_POST_BUILD_SCRIPT=\"$REPO_ROOT/image/post-build.sh\"" >> .config
+make olddefconfig
 echo "==> building (this takes a while: toolchain + kernel + rootfs)"
 make -j"$(nproc)"
 

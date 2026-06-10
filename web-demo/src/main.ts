@@ -87,10 +87,11 @@ function attachKernel(terminal: Terminal): KernelSession {
     // Warm-restore a saved snapshot if one exists (skips the cold boot), else
     // fall through to a normal boot. Thunk is resolved inside boot().
     initialState: () => loadSnapshot(SNAPSHOT_KEY).catch(() => null),
-    // "Ready" = the Buildroot login prompt at the tail. Intentionally NOT a loose
-    // [#$%] match — boot-log lines momentarily end in those chars and would fire a
-    // false "booted" mid-boot (which previously let a PANICKING kernel pass the gate).
-    promptPattern: /login:\s*$/,
+    // "Ready" = the auto-login root shell prompt ("# " at the tail) OR a login
+    // prompt (older images). Anchored to a newline so boot-log lines that merely
+    // contain '#' don't fire a false "booted" mid-boot (which once let a PANICKING
+    // kernel pass the gate).
+    promptPattern: /(login:\s*$)|(\n#\s?$)/,
     createEmulator: (cfg) => {
       const emu = new (window as any).V86(cfg);
       (window as any).__v86emu = emu; // debug/spike hook: raw save_state/restore_state
@@ -122,6 +123,12 @@ function attachKernel(terminal: Terminal): KernelSession {
       kernelTelemetry.booted = true;
       kernelTelemetry.bootTimeMs = bootTimeMs;
       updateStatus(`kernel ready (${bootTimeMs} ms)`, 'ready');
+      // The image auto-logs into a shell, so it's safe to bring networking up now
+      // (re-runs DHCP once the WISP relay link is established — boot-time DHCP can
+      // race the relay connection). Backgrounded so it never blocks the prompt.
+      if (NET_RELAY) {
+        session.sendInput('udhcpc -i eth0 -n -q -t 10 -T 2 >/dev/null 2>&1 &\n');
+      }
     })
     .catch((e) => {
       const msg = e && e.message ? e.message : String(e);
