@@ -35,15 +35,22 @@ function hostToRegex(h) {
   return new RegExp('^' + (wildcard ? '([^.]+\\.)+' : '') + base + '$', 'i');
 }
 
+// Egress policy. v86's WISP client resolves DNS LOCALLY and opens streams to IPs,
+// so a strict per-host allowlist is impractical (it refuses legitimate traffic to
+// allowlisted hosts whenever the VM's resolved IP differs from ours — common with
+// CDNs). So the DEFAULT, always-enforceable policy is: any PUBLIC host, but only on
+// web ports, with SSRF guards + rate-limit + audit. Set WISP_STRICT_ALLOWLIST=1 to
+// additionally restrict to pre-resolved allowlist IPs (accepting the CDN fragility).
+const STRICT_ALLOWLIST = process.env.WISP_STRICT_ALLOWLIST === '1';
+
 wisp.options.port_whitelist = [53, 80, 443]; // DNS, HTTP, HTTPS only
-// v86's WISP client resolves DNS locally and opens streams to IPs, so we must
-// permit direct-IP destinations — but only ones that resolve from the allowlist
-// (refreshed below). Private/loopback IPs stay blocked as a defense-in-depth
-// SSRF guard regardless of the allowlist.
 wisp.options.allow_direct_ip = true;
 wisp.options.allow_private_ips = false; // SSRF guard (no 10/172.16/192.168)
 wisp.options.allow_loopback_ips = false; // SSRF guard (no 127.0.0.0/8)
-wisp.options.stream_limit_per_host = 8;
+// NOTE: do NOT set stream_limit_per_host — wisp-js 0.4.1 has a bug in that path
+// (filter.mjs:103 iterates the streams object with for..of → "connection.streams
+// is not iterable", which silently kills every stream). stream_limit_total is fine
+// (it uses Object.keys). Per-client throttling is handled by our rate limiter below.
 wisp.options.stream_limit_total = 64;
 
 function ipToRegex(ip) {
@@ -114,7 +121,10 @@ server.on('upgrade', (request, socket, head) => {
 process.on('uncaughtException', (e) => audit('UNCAUGHT', '-', String(e && e.message ? e.message : e)));
 
 server.listen(PORT, async () => {
-  await refreshAllowlist();
-  setInterval(() => { void refreshAllowlist(); }, 5 * 60 * 1000);
-  audit('LISTENING', `0.0.0.0:${PORT}`, `allow=${ALLOWLIST.length} hosts ports=[53,80,443]`);
+  if (STRICT_ALLOWLIST) {
+    await refreshAllowlist();
+    setInterval(() => { void refreshAllowlist(); }, 5 * 60 * 1000);
+  }
+  const mode = STRICT_ALLOWLIST ? `strict allowlist (${ALLOWLIST.length} hosts)` : 'public web (SSRF+ports+ratelimit)';
+  audit('LISTENING', `0.0.0.0:${PORT}`, `mode=${mode} ports=[53,80,443]`);
 });

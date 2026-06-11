@@ -22,9 +22,20 @@ BR2_TARGET_GENERIC_ROOT_PASSWD=""
 #     Auto-login on ttyS0 is done by image/post-build.sh (injected by build.sh). ---
 BR2_SYSTEM_DHCP="eth0"
 
-# --- Education toolset. Verified in-image: nano. Next toolset rebuild adds bash,
-#     a TLS-enabled wget/curl (busybox wget has NO HTTPS), python3, git, coreutils. ---
+# --- Education toolset (Phase 3.5) ---
 BR2_PACKAGE_NANO=y
+# TLS + CA certs: busybox wget has NO HTTPS — these give real HTTPS via curl.
+BR2_PACKAGE_OPENSSL=y
+BR2_PACKAGE_CA_CERTIFICATES=y
+BR2_PACKAGE_LIBCURL=y
+BR2_PACKAGE_LIBCURL_CURL=y
+# Python 3 with the ssl module (the #1 education language; ssl enables https/urllib).
+BR2_PACKAGE_PYTHON3=y
+BR2_PACKAGE_PYTHON3_SSL=y
+# NOTE: bash + GNU coreutils need wide-char/locale support that the default
+# uClibc-ng toolchain has off, so they silently don't build here. Adding them
+# means a glibc (or wchar-enabled) toolchain rebuild — a deliberate follow-on.
+# git is also deferred (size/time). busybox sh + applets cover the basics.
 
 # --- Linux kernel 6.6.x, 32-bit arch default config, bzImage ---
 BR2_LINUX_KERNEL=y
