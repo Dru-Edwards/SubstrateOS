@@ -9,8 +9,9 @@ import type { Page } from '@playwright/test';
  * arbitrary length, quoting, and newlines.
  */
 
-export async function bootKernel(page: Page): Promise<void> {
-  await page.goto('/?engine=kernel');
+export async function bootKernel(page: Page, opts: { net?: string } = {}): Promise<void> {
+  const q = opts.net ? `&net=${encodeURIComponent(opts.net)}` : '';
+  await page.goto(`/?engine=kernel${q}`);
   await page.waitForFunction(
     () => { const s = (window as any).__substrateKernel; return !!s && (s.booted === true || s.error !== null); },
     null,

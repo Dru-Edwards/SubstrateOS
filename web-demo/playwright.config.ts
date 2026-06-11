@@ -34,10 +34,20 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'pnpm dev',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      command: 'pnpm dev',
+      port: 5173,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+    {
+      // WISP networking proxy for the Gate-G3 networking test. The proxy is
+      // dependency-isolated under ../proxy (its own node_modules).
+      command: 'node ../proxy/server.mjs',
+      url: 'http://localhost:6001/',
+      reuseExistingServer: true,
+      timeout: 30 * 1000,
+    },
+  ],
 });
