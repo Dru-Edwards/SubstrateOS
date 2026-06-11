@@ -71,6 +71,43 @@ function loadV86(): Promise<void> {
   return v86LoadPromise;
 }
 
+// --- Embeddable lab config (the embed-SDK launches a configured lab via the URL) ---
+//   ?files=<base64 JSON [{path,content}]>   preload lesson files into the VM
+//   ?run=<base64 shell command>             run on start (e.g. open a tutorial)
+interface LabFile { path: string; content: string }
+function getLabConfig(): { files: LabFile[]; run: string } {
+  const p = new URLSearchParams(location.search);
+  let files: LabFile[] = [];
+  try { const f = p.get('files'); if (f) files = JSON.parse(atob(f)); } catch { /* malformed — ignore */ }
+  let run = '';
+  try { const r = p.get('run'); if (r) run = atob(r); } catch { /* malformed — ignore */ }
+  return { files: Array.isArray(files) ? files : [], run };
+}
+
+// Write a file into the kernel over the serial TTY (base64-chunked to survive the
+// ~255-char canonical line limit), creating parent dirs as needed.
+async function writeFileToKernel(session: KernelSession, path: string, content: string): Promise<void> {
+  const b64 = btoa(unescape(encodeURIComponent(content)));
+  session.sendInput(': > /tmp/.labb64\n');
+  await new Promise((f) => setTimeout(f, 40));
+  for (let i = 0; i < b64.length; i += 150) {
+    session.sendInput(`printf %s '${b64.slice(i, i + 150)}' >> /tmp/.labb64\n`);
+    await new Promise((f) => setTimeout(f, 40));
+  }
+  session.sendInput(`mkdir -p "$(dirname '${path}')" 2>/dev/null; base64 -d /tmp/.labb64 > '${path}'\n`);
+  await new Promise((f) => setTimeout(f, 80));
+}
+
+async function applyLabConfig(session: KernelSession): Promise<void> {
+  const { files, run } = getLabConfig();
+  for (const f of files) {
+    if (f && typeof f.path === 'string' && typeof f.content === 'string') {
+      await writeFileToKernel(session, f.path, f.content);
+    }
+  }
+  if (run) session.sendInput(run + '\n');
+}
+
 function attachKernel(terminal: Terminal): KernelSession {
   const session = new KernelSession({
     assetBase: '/kernel',
@@ -129,6 +166,8 @@ function attachKernel(terminal: Terminal): KernelSession {
       if (NET_RELAY) {
         session.sendInput('udhcpc -i eth0 -n -q -t 10 -T 2 >/dev/null 2>&1 &\n');
       }
+      // Preload any lesson files + run the lab's startup command (embeddable labs).
+      void applyLabConfig(session);
     })
     .catch((e) => {
       const msg = e && e.message ? e.message : String(e);
