@@ -1,0 +1,32 @@
+name: Kernel CI
+
+# Gates the kernel work (Phases 1–3). Runs the checks that work headless:
+# runtime-sdk unit tests + SDK/web builds. The kernel/conformance/persistence/
+# networking e2e need the v86 image binaries (gitignored) + a relay, so they run
+# locally, not here — see web-demo/tests/e2e and docs/LINUX-CONFORMANCE.md.
+on:
+  push:
+    branches: [feat/kernel-spike]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+      - name: Build runtime-sdk
+        run: pnpm --filter @substrateos/runtime build
+      # Scope to the kernel work. The other runtime-sdk suites (stateMachine/http)
+      # have pre-existing failures fixed only by uncommitted WIP — out of scope here.
+      - name: Unit tests (KernelSession)
+        run: pnpm --filter @substrateos/runtime exec vitest run src/kernel/kernel-session.test.ts
+      - name: Build web-demo
+        run: pnpm --filter substrateos-web-demo build

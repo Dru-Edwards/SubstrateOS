@@ -1,0 +1,6 @@
+# v86 engine + kernel image are large binaries — keep them out of git.
+# Populate locally (see README.md): v86 engine/bios from spike/assets, and
+# bzImage + rootfs.cpio.gz produced by image/build.sh.
+*
+!.gitignore
+!README.md

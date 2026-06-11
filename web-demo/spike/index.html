@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SubstrateOS — v86 Real-Kernel Spike</title>
+  <!-- xterm.js: the SAME terminal SubstrateOS web-demo/src/main.ts already imports (@xterm/xterm).
+       Loaded from CDN here only to keep the spike self-contained. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm/css/xterm.css" />
+  <style>
+    body { margin: 0; background: #0b0e14; color: #c9d1d9; font-family: ui-monospace, monospace; }
+    #bar { padding: 8px 12px; background: #161b22; font-size: 13px; border-bottom: 1px solid #30363d; }
+    #bar b { color: #58a6ff; }
+    #term { height: calc(100vh - 42px); padding: 6px; }
+    .ok { color: #3fb950; } .pend { color: #d29922; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <b>SubstrateOS v86 spike</b> &mdash;
+    <span id="status" class="pend">booting real Linux kernel&hellip;</span>
+    &nbsp;|&nbsp; first byte: <span id="m-first">&mdash;</span>
+    &nbsp; kernel: <span id="m-kernel">&mdash;</span>
+    &nbsp; prompt: <span id="m-prompt">&mdash;</span>
+    &nbsp; uname: <span id="m-uname">&mdash;</span>
+  </div>
+  <div id="term"></div>
+
+  <!-- v86 engine (vendored prebuilt) -->
+  <script src="./assets/libv86.js"></script>
+  <!-- xterm.js engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm/lib/xterm.js"></script>
+
+  <script>
+    // Spike telemetry — Playwright reads window.__spike after boot.
+    const spike = window.__spike = {
+      t0: 0, firstByteMs: null, kernelMs: null, promptMs: null,
+      unameMs: null, unameOutput: "", booted: false, transcript: "", error: null,
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (txt, cls) => { const s = $("status"); s.textContent = txt; s.className = cls || "pend"; };
+
+    const term = new Terminal({
+      convertEol: true, fontSize: 13, cursorBlink: true,
+      theme: { background: "#0b0e14", foreground: "#c9d1d9" },
+    });
+    term.open($("term"));
+
+    let buf = "";                 // rolling serial buffer for milestone detection
+    let unameSent = false;
+    let capturingUname = false;
+
+    function onSerialByte(byte) {
+      const ch = String.fromCharCode(byte);
+      term.write(ch);
+      buf += ch; spike.transcript += ch;
+      if (buf.length > 8000) buf = buf.slice(-4000);
+
+      const now = performance.now();
+
+      if (spike.firstByteMs === null) {
+        spike.firstByteMs = Math.round(now - spike.t0);
+        $("m-first").textContent = spike.firstByteMs + " ms";
+      }
+      if (spike.kernelMs === null && /Linux version/.test(buf)) {
+        spike.kernelMs = Math.round(now - spike.t0);
+        $("m-kernel").textContent = spike.kernelMs + " ms";
+      }
+      // Busybox shell prompt on the copy.sh buildroot image is "/ # "
+      if (spike.promptMs === null && /\/\s?#\s?$/.test(buf)) {
+        spike.promptMs = Math.round(now - spike.t0);
+        $("m-prompt").textContent = spike.promptMs + " ms";
+        setStatus("real kernel booted to shell ✓", "ok");
+        spike.booted = true;
+        // Auto-run a marker command to PROVE it's a real kernel, not a sim.
+        if (!unameSent) {
+          unameSent = true;
+          setTimeout(() => {
+            buf = ""; capturingUname = true;
+            emulator.serial0_send("uname -a\n");
+          }, 600);
+        }
+      }
+      if (capturingUname && /\/\s?#\s?$/.test(buf) && buf.includes("Linux")) {
+        capturingUname = false;
+        spike.unameMs = Math.round(now - spike.t0);
+        // pull the uname line out of the buffer
+        const line = buf.split("\n").find((l) => l.startsWith("Linux")) || buf.trim();
+        spike.unameOutput = line.trim();
+        $("m-uname").textContent = spike.unameOutput.slice(0, 60);
+      }
+    }
+
+    let emulator;
+    try {
+      spike.t0 = performance.now();
+      emulator = window.emulator = new V86({
+        wasm_path: "./assets/v86.wasm",
+        memory_size: 128 * 1024 * 1024,
+        vga_memory_size: 8 * 1024 * 1024,
+        bios: { url: "./assets/seabios.bin" },
+        vga_bios: { url: "./assets/vgabios.bin" },
+        cdrom: { url: "./assets/linux.iso" },
+        autostart: true,
+        disable_keyboard: true,
+        disable_mouse: true,
+      });
+      emulator.add_listener("serial0-output-byte", onSerialByte);
+      // Wire user keystrokes from xterm back into the kernel TTY.
+      term.onData((d) => emulator.serial0_send(d));
+    } catch (e) {
+      spike.error = String(e && e.stack || e);
+      setStatus("ERROR: " + spike.error, "pend");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "substrateos-wisp-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hardened WISP networking proxy for SubstrateOS — allowlist + rate-limit + egress audit. ETI-hosted in production; runnable locally for Gate G3.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@mercuryworkshop/wisp-js": "^0.4.1",
+    "ws": "^8.18.0"
+  }
+}

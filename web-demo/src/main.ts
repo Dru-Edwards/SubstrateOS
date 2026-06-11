@@ -16,19 +16,175 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
-import { SubstrateOSRuntime, SubstrateOSMetrics, SubstrateOSShell } from '@substrateos/runtime';
-import { hostLogDevice, httpDevice, createStoreDevice } from '@substrateos/device-protocols';
+import { SubstrateOSMetrics, SubstrateOSShell } from '@substrateos/runtime';
+import { KernelSession } from '@substrateos/runtime';
+import { loadSnapshot, saveSnapshot } from './snapshot-store';
+
+// Stable key for the persisted VM snapshot (one per image format).
+const SNAPSHOT_KEY = 'kernel:buildroot-6.6';
+// Device protocols are available for advanced use but not currently used in demo
+// import { hostLogDevice, httpDevice, createStoreDevice } from '@substrateos/device-protocols';
 
 // Store logs in memory for observability
 const logHistory: any[] = [];
 const MAX_LOGS = 100;
+
+// Engine selection: '?engine=sim' uses the in-process SubstrateOSShell;
+// '?engine=kernel' boots the real v86 Linux kernel via KernelSession.
+// Default stays 'sim' for now — the real kernel is proven (Gate G1) and opt-in;
+// flipping the default is a deliberate later-phase step (after persistence,
+// networking, and tier truth-alignment land), not a Phase 1 change.
+const ENGINE = new URLSearchParams(location.search).get('engine') ?? 'sim';
+// Optional WISP relay for real networking, e.g. ?net=ws://localhost:6001/.
+// Empty = offline (no third-party routing in committed defaults).
+const NET_RELAY = new URLSearchParams(location.search).get('net') ?? '';
+
+interface KernelTelemetry {
+  transcript: string;
+  booted: boolean;
+  bootTimeMs: number | null;
+  error: string | null;
+  sendInput?: (s: string) => void;
+  saveSnapshot?: () => Promise<void>;
+}
+// Exposed for the Gate-G1 Playwright e2e (Task 6) and debugging.
+// KNOWN LIMITATION (Phase 1): this telemetry is a single global, so it tracks only
+// ONE kernel session. Opening multiple kernel tabs makes the last-attached tab win
+// (transcript/booted/sendInput all point at it). Fine while the default engine is
+// 'sim' and kernel mode is single-tab opt-in; revisit (per-tab keying) if/when
+// multiple concurrent kernel tabs become a supported scenario.
+const kernelTelemetry: KernelTelemetry = { transcript: '', booted: false, bootTimeMs: null, error: null };
+(window as any).__substrateKernel = kernelTelemetry;
+
+let v86LoadPromise: Promise<void> | null = null;
+function loadV86(): Promise<void> {
+  if ((window as any).V86) return Promise.resolve();
+  if (!v86LoadPromise) {
+    v86LoadPromise = new Promise<void>((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = '/kernel/libv86.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('failed to load /kernel/libv86.js'));
+      document.head.appendChild(s);
+    });
+  }
+  return v86LoadPromise;
+}
+
+// --- Embeddable lab config (the embed-SDK launches a configured lab via the URL) ---
+//   ?files=<base64 JSON [{path,content}]>   preload lesson files into the VM
+//   ?run=<base64 shell command>             run on start (e.g. open a tutorial)
+interface LabFile { path: string; content: string }
+function getLabConfig(): { files: LabFile[]; run: string } {
+  const p = new URLSearchParams(location.search);
+  let files: LabFile[] = [];
+  try { const f = p.get('files'); if (f) files = JSON.parse(atob(f)); } catch { /* malformed — ignore */ }
+  let run = '';
+  try { const r = p.get('run'); if (r) run = atob(r); } catch { /* malformed — ignore */ }
+  return { files: Array.isArray(files) ? files : [], run };
+}
+
+// Write a file into the kernel over the serial TTY (base64-chunked to survive the
+// ~255-char canonical line limit), creating parent dirs as needed.
+async function writeFileToKernel(session: KernelSession, path: string, content: string): Promise<void> {
+  const b64 = btoa(unescape(encodeURIComponent(content)));
+  session.sendInput(': > /tmp/.labb64\n');
+  await new Promise((f) => setTimeout(f, 40));
+  for (let i = 0; i < b64.length; i += 150) {
+    session.sendInput(`printf %s '${b64.slice(i, i + 150)}' >> /tmp/.labb64\n`);
+    await new Promise((f) => setTimeout(f, 40));
+  }
+  session.sendInput(`mkdir -p "$(dirname '${path}')" 2>/dev/null; base64 -d /tmp/.labb64 > '${path}'\n`);
+  await new Promise((f) => setTimeout(f, 80));
+}
+
+async function applyLabConfig(session: KernelSession): Promise<void> {
+  const { files, run } = getLabConfig();
+  for (const f of files) {
+    if (f && typeof f.path === 'string' && typeof f.content === 'string') {
+      await writeFileToKernel(session, f.path, f.content);
+    }
+  }
+  if (run) session.sendInput(run + '\n');
+}
+
+function attachKernel(terminal: Terminal): KernelSession {
+  const session = new KernelSession({
+    assetBase: '/kernel',
+    // Modern Buildroot 6.6 image: bzImage + initramfs. cmdline puts the kernel
+    // console on ttyS0 so the serial bridge (serial0 -> xterm) sees boot + login.
+    imageConfig: {
+      bzimage: { url: '/kernel/bzImage' },
+      initrd: { url: '/kernel/rootfs.cpio.gz' },
+      cmdline: 'console=ttyS0 nolapic noapic mitigations=off',
+    },
+    memoryMB: 256,
+    bootTimeoutMs: 90000,
+    networkRelayUrl: NET_RELAY || undefined,
+    // Warm-restore a saved snapshot if one exists (skips the cold boot), else
+    // fall through to a normal boot. Thunk is resolved inside boot().
+    initialState: () => loadSnapshot(SNAPSHOT_KEY).catch(() => null),
+    // "Ready" = the auto-login root shell prompt ("# " at the tail) OR a login
+    // prompt (older images). Anchored to a newline so boot-log lines that merely
+    // contain '#' don't fire a false "booted" mid-boot (which once let a PANICKING
+    // kernel pass the gate).
+    promptPattern: /(login:\s*$)|(\n#\s?$)/,
+    createEmulator: (cfg) => {
+      const emu = new (window as any).V86(cfg);
+      (window as any).__v86emu = emu; // debug/spike hook: raw save_state/restore_state
+      return emu;
+    },
+    onOutput: (chunk) => {
+      terminal.write(chunk);
+      kernelTelemetry.transcript += chunk;
+      if (kernelTelemetry.transcript.length > 40000) {
+        kernelTelemetry.transcript = kernelTelemetry.transcript.slice(-20000);
+      }
+    },
+  });
+  // Test/debug seam: lets the e2e drive the real TTY without relying on xterm focus.
+  kernelTelemetry.sendInput = (s: string) => { try { session.sendInput(s); } catch { /* pre-boot */ } };
+  // Persist the running VM (compressed) to IndexedDB so it survives a reload.
+  kernelTelemetry.saveSnapshot = async () => {
+    if (!session.booted) return;
+    await saveSnapshot(SNAPSHOT_KEY, await session.saveState());
+  };
+  // Best-effort autosave when the tab is closing (browsers allow a short sync
+  // window; this kicks off the save without blocking unload).
+  window.addEventListener('beforeunload', () => { void kernelTelemetry.saveSnapshot?.(); });
+  // Raw TTY: forward every keystroke straight to the kernel (no line buffering).
+  terminal.onData((d) => { try { session.sendInput(d); } catch { /* keystroke before boot */ } });
+  loadV86()
+    .then(() => session.boot())
+    .then(({ bootTimeMs }) => {
+      kernelTelemetry.booted = true;
+      kernelTelemetry.bootTimeMs = bootTimeMs;
+      updateStatus(`kernel ready (${bootTimeMs} ms)`, 'ready');
+      // The image auto-logs into a shell, so it's safe to bring networking up now
+      // (re-runs DHCP once the WISP relay link is established — boot-time DHCP can
+      // race the relay connection). Backgrounded so it never blocks the prompt.
+      if (NET_RELAY) {
+        session.sendInput('udhcpc -i eth0 -n -q -t 10 -T 2 >/dev/null 2>&1 &\n');
+      }
+      // Preload any lesson files + run the lab's startup command (embeddable labs).
+      void applyLabConfig(session);
+    })
+    .catch((e) => {
+      const msg = e && e.message ? e.message : String(e);
+      kernelTelemetry.error = msg;
+      terminal.write(`\r\n[kernel boot error] ${msg}\r\n`);
+      updateStatus('kernel boot failed', 'error');
+    });
+  return session;
+}
 
 // Terminal tab management
 interface TerminalTab {
   id: number;
   terminal: Terminal;
   fitAddon: FitAddon;
-  shell: SubstrateOSShell;
+  shell?: SubstrateOSShell;   // absent in kernel mode
+  kernel?: KernelSession;     // present in kernel mode
   element: HTMLElement;
   inputBuffer: string;
 }
@@ -257,15 +413,21 @@ function createTerminalTab(showMotdFn?: (term: Terminal, shell: SubstrateOSShell
   terminal.loadAddon(webLinksAddon);
   terminal.open(element);
   
-  // Create shell
-  const shell = new SubstrateOSShell(
-    { 
-      persistKey: `substrateos-tab-${id}`,
-      onOutput: (text) => terminal.write(text)
-    },
-    createDeviceCallbacks()
-  );
-  
+  // Create shell (kernel vs sim engine)
+  let shell: SubstrateOSShell | undefined;
+  let kernel: KernelSession | undefined;
+  if (ENGINE === 'kernel') {
+    kernel = attachKernel(terminal);
+  } else {
+    shell = new SubstrateOSShell(
+      {
+        persistKey: `substrateos-tab-${id}`,
+        onOutput: (text) => terminal.write(text)
+      },
+      createDeviceCallbacks()
+    );
+  }
+
   // Create tab element
   const addBtn = tabsContainer.querySelector('.terminal-tab-add');
   const tabEl = document.createElement('div');
@@ -301,20 +463,22 @@ function createTerminalTab(showMotdFn?: (term: Terminal, shell: SubstrateOSShell
     terminal,
     fitAddon,
     shell,
+    kernel,
     element,
     inputBuffer: ''
   };
-  
+
   terminals.push(tab);
-  
-  // Setup input handling
-  setupTerminalInput(tab);
-  
-  // Show MOTD if provided
-  if (showMotdFn) {
-    showMotdFn(terminal, shell);
+
+  // Setup input handling (sim-only; kernel uses raw onData wired in attachKernel)
+  if (ENGINE !== 'kernel') {
+    setupTerminalInput(tab);
+    // Show MOTD if provided
+    if (showMotdFn && shell) {
+      showMotdFn(terminal, shell);
+    }
   }
-  
+
   // Switch to new tab
   switchToTab(id);
   
@@ -358,9 +522,10 @@ function closeTab(id: number) {
   tab.element.remove();
   document.querySelector(`.terminal-tab[data-tab="${id}"]`)?.remove();
   
-  // Dispose terminal
+  // Dispose terminal + stop the kernel VM (frees the v86 WASM instance + listener)
+  tab.kernel?.dispose();
   tab.terminal.dispose();
-  
+
   // Remove from array
   terminals.splice(idx, 1);
   
@@ -374,7 +539,8 @@ function closeTab(id: number) {
 // Setup terminal input handling
 function setupTerminalInput(tab: TerminalTab) {
   const { terminal, shell } = tab;
-  
+  if (!shell) return;
+
   const showPrompt = () => {
     terminal.write(shell.getPrompt());
   };
@@ -513,27 +679,34 @@ async function main() {
   terminal.loadAddon(webLinksAddon);
   terminal.open(terminalContainer);
   
-  const shell = new SubstrateOSShell(
-    { 
-      persistKey: 'substrateos-demo',
-      onOutput: (text) => terminal.write(text)
-    },
-    createDeviceCallbacks()
-  );
-  
+  let shell: SubstrateOSShell | undefined;
+  let kernel: KernelSession | undefined;
+  if (ENGINE === 'kernel') {
+    kernel = attachKernel(terminal);
+  } else {
+    shell = new SubstrateOSShell(
+      {
+        persistKey: 'substrateos-demo',
+        onOutput: (text) => terminal.write(text)
+      },
+      createDeviceCallbacks()
+    );
+  }
+
   // Create first tab entry
   const firstTabEntry: TerminalTab = {
     id: 0,
     terminal,
     fitAddon,
     shell,
+    kernel,
     element: terminalContainer,
     inputBuffer: ''
   };
   terminals.push(firstTabEntry);
-  
-  // Setup input handling for first terminal
-  setupTerminalInput(firstTabEntry);
+
+  // Setup input handling for first terminal (sim-only)
+  if (ENGINE !== 'kernel') setupTerminalInput(firstTabEntry);
   
   // Handle window resize
   window.addEventListener('resize', () => {
@@ -551,14 +724,20 @@ async function main() {
   // Setup quick commands to use active terminal
   setupQuickCommands((cmd) => {
     const activeTab = getActiveTerminal();
-    if (activeTab) {
-      activeTab.terminal.write(cmd.slice(0, -1));
-      activeTab.inputBuffer = cmd.slice(0, -1);
+    if (!activeTab) return;
+    const command = cmd.slice(0, -1);
+    if (activeTab.shell) {
+      const shell = activeTab.shell;
+      activeTab.terminal.write(command);
+      activeTab.inputBuffer = command;
       activeTab.terminal.writeln('');
       activeTab.inputBuffer = '';
-      activeTab.shell.execute(cmd.slice(0, -1)).then(() => {
-        activeTab.terminal.write(activeTab.shell.getPrompt());
+      shell.execute(command).then(() => {
+        activeTab.terminal.write(shell.getPrompt());
       });
+    } else if (activeTab.kernel) {
+      // Kernel mode: feed the command straight to the real TTY.
+      activeTab.kernel.sendInput(command + '\n');
     }
   });
 
@@ -577,8 +756,8 @@ async function main() {
     document.getElementById('loading')?.classList.add('hidden');
   }, 500);
 
-  // Show welcome message
-  showMotd(terminal, shell);
+  // Show welcome message (sim only; kernel writes its own boot output)
+  if (ENGINE !== 'kernel' && shell) showMotd(terminal, shell);
 
   // Focus terminal and fit
   terminal.focus();
